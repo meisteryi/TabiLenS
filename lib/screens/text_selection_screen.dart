@@ -10,7 +10,8 @@ class TextSelectionScreen extends ConsumerStatefulWidget {
   const TextSelectionScreen({super.key});
 
   @override
-  ConsumerState<TextSelectionScreen> createState() => _TextSelectionScreenState();
+  ConsumerState<TextSelectionScreen> createState() =>
+      _TextSelectionScreenState();
 }
 
 class _TextSelectionScreenState extends ConsumerState<TextSelectionScreen> {
@@ -26,30 +27,33 @@ class _TextSelectionScreenState extends ConsumerState<TextSelectionScreen> {
     final imageFile = ref.read(imageProvider);
     if (imageFile == null) return;
 
-    final ImageStream stream = FileImage(File(imageFile.path))
-        .resolve(const ImageConfiguration());
-    
-    stream.addListener(ImageStreamListener((ImageInfo info, bool _) {
-      if (mounted) {
-        setState(() {
-          _imageSize = Size(
-            info.image.width.toDouble(),
-            info.image.height.toDouble(),
-          );
-        });
-      }
-    }));
+    final ImageStream stream = FileImage(
+      File(imageFile.path),
+    ).resolve(const ImageConfiguration());
+
+    stream.addListener(
+      ImageStreamListener((ImageInfo info, bool _) {
+        if (mounted) {
+          setState(() {
+            _imageSize = Size(
+              info.image.width.toDouble(),
+              info.image.height.toDouble(),
+            );
+          });
+        }
+      }),
+    );
   }
 
   void _handleTranslation(BuildContext context, String text) {
     final image = ref.read(imageProvider);
     if (image != null) {
-      ref.read(geminiNotifierProvider.notifier).translateSelectedBlock(image, text);
-      Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (context) => const ResultScreen(),
-        ),
-      );
+      ref
+          .read(geminiNotifierProvider.notifier)
+          .translateSelectedBlock(image, text);
+      Navigator.of(
+        context,
+      ).push(MaterialPageRoute(builder: (context) => const ResultScreen()));
     }
   }
 
@@ -80,7 +84,8 @@ class _TextSelectionScreenState extends ConsumerState<TextSelectionScreen> {
         loading: () => _BuildDetectionLoadingState(imagePath: imageFile.path),
         error: (error, stack) => _BuildErrorState(
           errorMessage: error.toString(),
-          onRetry: () => ref.read(textSelectionProvider.notifier).detectBlocks(imageFile),
+          onRetry: () =>
+              ref.read(textSelectionProvider.notifier).detectBlocks(imageFile),
         ),
         data: (blocks) {
           return Column(
@@ -88,11 +93,18 @@ class _TextSelectionScreenState extends ConsumerState<TextSelectionScreen> {
             children: [
               // Info Banner
               Container(
-                padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                padding: const EdgeInsets.symmetric(
+                  vertical: 12,
+                  horizontal: 16,
+                ),
                 color: colorScheme.primary.withValues(alpha: 0.05),
                 child: Row(
                   children: [
-                    Icon(Icons.info_outline_rounded, size: 18, color: colorScheme.primary),
+                    Icon(
+                      Icons.info_outline_rounded,
+                      size: 18,
+                      color: colorScheme.primary,
+                    ),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
@@ -106,7 +118,7 @@ class _TextSelectionScreenState extends ConsumerState<TextSelectionScreen> {
                   ],
                 ),
               ),
-              
+
               // Interactive Image Canvas
               Expanded(
                 child: Center(
@@ -117,9 +129,13 @@ class _TextSelectionScreenState extends ConsumerState<TextSelectionScreen> {
                         : LayoutBuilder(
                             builder: (context, constraints) {
                               // Calculate rendered size maintaining aspect ratio
-                              final double scaleX = constraints.maxWidth / _imageSize!.width;
-                              final double scaleY = constraints.maxHeight / _imageSize!.height;
-                              final double scale = scaleX < scaleY ? scaleX : scaleY;
+                              final double scaleX =
+                                  constraints.maxWidth / _imageSize!.width;
+                              final double scaleY =
+                                  constraints.maxHeight / _imageSize!.height;
+                              final double scale = scaleX < scaleY
+                                  ? scaleX
+                                  : scaleY;
 
                               final renderedWidth = _imageSize!.width * scale;
                               final renderedHeight = _imageSize!.height * scale;
@@ -131,7 +147,9 @@ class _TextSelectionScreenState extends ConsumerState<TextSelectionScreen> {
                                   borderRadius: BorderRadius.circular(16),
                                   boxShadow: [
                                     BoxShadow(
-                                      color: Colors.black.withValues(alpha: 0.1),
+                                      color: Colors.black.withValues(
+                                        alpha: 0.1,
+                                      ),
                                       blurRadius: 16,
                                       offset: const Offset(0, 4),
                                     ),
@@ -148,21 +166,37 @@ class _TextSelectionScreenState extends ConsumerState<TextSelectionScreen> {
                                           fit: BoxFit.fill,
                                         ),
                                       ),
-                                      
+
                                       // Clickable boxes
                                       ...blocks.map((block) {
                                         // box2d: [ymin, xmin, ymax, xmax] (0 to 1000)
-                                        final double ymin = block.box2d[0] * renderedHeight / 1000;
-                                        final double xmin = block.box2d[1] * renderedWidth / 1000;
-                                        final double ymax = block.box2d[2] * renderedHeight / 1000;
-                                        final double xmax = block.box2d[3] * renderedWidth / 1000;
+                                        final double ymin =
+                                            block.box2d[0] *
+                                            renderedHeight /
+                                            1000;
+                                        final double xmin =
+                                            block.box2d[1] *
+                                            renderedWidth /
+                                            1000;
+                                        final double ymax =
+                                            block.box2d[2] *
+                                            renderedHeight /
+                                            1000;
+                                        final double xmax =
+                                            block.box2d[3] *
+                                            renderedWidth /
+                                            1000;
 
                                         final double left = xmin;
                                         final double top = ymin;
-                                        final double width = (xmax - xmin).clamp(20.0, renderedWidth);
-                                        final double height = (ymax - ymin).clamp(20.0, renderedHeight);
+                                        final double width = (xmax - xmin)
+                                            .clamp(20.0, renderedWidth);
+                                        final double height = (ymax - ymin)
+                                            .clamp(20.0, renderedHeight);
 
-                                        final isSelected = selectionState.selectedBlocks.contains(block);
+                                        final isSelected = selectionState
+                                            .selectedBlocks
+                                            .contains(block);
 
                                         return Positioned(
                                           left: left,
@@ -171,21 +205,34 @@ class _TextSelectionScreenState extends ConsumerState<TextSelectionScreen> {
                                           height: height,
                                           child: GestureDetector(
                                             onTap: () {
-                                              ref.read(textSelectionProvider.notifier).selectBlock(block);
+                                              ref
+                                                  .read(
+                                                    textSelectionProvider
+                                                        .notifier,
+                                                  )
+                                                  .selectBlock(block);
                                             },
                                             child: AnimatedContainer(
-                                              duration: const Duration(milliseconds: 150),
+                                              duration: const Duration(
+                                                milliseconds: 150,
+                                              ),
                                               decoration: BoxDecoration(
                                                 color: isSelected
-                                                    ? colorScheme.primary.withValues(alpha: 0.25)
+                                                    ? colorScheme.primary
+                                                          .withValues(
+                                                            alpha: 0.25,
+                                                          )
                                                     : Colors.transparent,
                                                 border: Border.all(
                                                   color: isSelected
                                                       ? colorScheme.primary
-                                                      : Colors.amber.withValues(alpha: 0.6),
+                                                      : Colors.amber.withValues(
+                                                          alpha: 0.6,
+                                                        ),
                                                   width: isSelected ? 2.5 : 1.5,
                                                 ),
-                                                borderRadius: BorderRadius.circular(4),
+                                                borderRadius:
+                                                    BorderRadius.circular(4),
                                               ),
                                             ),
                                           ),
@@ -200,13 +247,15 @@ class _TextSelectionScreenState extends ConsumerState<TextSelectionScreen> {
                   ),
                 ),
               ),
-              
+
               // Bottom Action Card
               Container(
                 padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(
                   color: colorScheme.surface,
-                  borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(28),
+                  ),
                   boxShadow: [
                     BoxShadow(
                       color: Colors.black.withValues(alpha: 0.05),
@@ -265,16 +314,22 @@ class _TextSelectionScreenState extends ConsumerState<TextSelectionScreen> {
                           padding: const EdgeInsets.symmetric(vertical: 24),
                           decoration: BoxDecoration(
                             border: Border.all(
-                              color: colorScheme.onSurface.withValues(alpha: 0.05),
+                              color: colorScheme.onSurface.withValues(
+                                alpha: 0.05,
+                              ),
                             ),
                             borderRadius: BorderRadius.circular(16),
-                            color: colorScheme.onSurface.withValues(alpha: 0.02),
+                            color: colorScheme.onSurface.withValues(
+                              alpha: 0.02,
+                            ),
                           ),
                           child: Center(
                             child: Text(
                               '일본어 박스를 선택해 주세요.',
                               style: theme.textTheme.bodyLarge?.copyWith(
-                                color: colorScheme.onSurface.withValues(alpha: 0.4),
+                                color: colorScheme.onSurface.withValues(
+                                  alpha: 0.4,
+                                ),
                               ),
                             ),
                           ),
@@ -309,15 +364,10 @@ class _BuildDetectionLoadingState extends StatelessWidget {
           Positioned.fill(
             child: Opacity(
               opacity: 0.2,
-              child: Image.file(
-                File(imagePath!),
-                fit: BoxFit.cover,
-              ),
+              child: Image.file(File(imagePath!), fit: BoxFit.cover),
             ),
           ),
-        Container(
-          color: colorScheme.surface.withValues(alpha: 0.85),
-        ),
+        Container(color: colorScheme.surface.withValues(alpha: 0.85)),
         Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -327,7 +377,9 @@ class _BuildDetectionLoadingState extends StatelessWidget {
                 height: 48,
                 child: CircularProgressIndicator(
                   strokeWidth: 4,
-                  valueColor: AlwaysStoppedAnimation<Color>(colorScheme.primary),
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                    colorScheme.primary,
+                  ),
                 ),
               ),
               const SizedBox(height: 24),
@@ -356,10 +408,7 @@ class _BuildErrorState extends StatelessWidget {
   final String errorMessage;
   final VoidCallback onRetry;
 
-  const _BuildErrorState({
-    required this.errorMessage,
-    required this.onRetry,
-  });
+  const _BuildErrorState({required this.errorMessage, required this.onRetry});
 
   @override
   Widget build(BuildContext context) {
@@ -402,7 +451,10 @@ class _BuildErrorState extends StatelessWidget {
               style: ElevatedButton.styleFrom(
                 backgroundColor: colorScheme.primary,
                 foregroundColor: colorScheme.onPrimary,
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 12,
+                ),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
