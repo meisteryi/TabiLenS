@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import '../providers/image_provider.dart';
-import '../providers/gemini_provider.dart';
-import 'result_screen.dart';
+import 'history_screen.dart';
+import 'text_selection_screen.dart';
+import '../providers/text_selection_provider.dart';
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -19,13 +20,13 @@ class HomeScreen extends ConsumerWidget {
       
       final selectedImage = ref.read(imageProvider);
       if (selectedImage != null && context.mounted) {
-        // Trigger translation
-        ref.read(geminiNotifierProvider.notifier).translateImage(selectedImage);
+        // Trigger block detection
+        ref.read(textSelectionProvider.notifier).detectBlocks(selectedImage);
         
-        // Navigate to the result screen
+        // Navigate to the selection screen
         Navigator.of(context).push(
           MaterialPageRoute(
-            builder: (context) => const ResultScreen(),
+            builder: (context) => const TextSelectionScreen(),
           ),
         );
       }
@@ -47,6 +48,26 @@ class HomeScreen extends ConsumerWidget {
     final colorScheme = theme.colorScheme;
 
     return Scaffold(
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.history_rounded),
+            tooltip: '번역 기록',
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => const HistoryScreen(),
+                ),
+              );
+            },
+          ),
+          const SizedBox(width: 8),
+        ],
+      ),
+      extendBodyBehindAppBar: true,
       body: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(

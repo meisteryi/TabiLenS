@@ -28,6 +28,10 @@ class ImageNotifier extends Notifier<XFile?> {
   void clear() {
     state = null;
   }
+
+  void setImage(XFile? file) {
+    state = file;
+  }
 }
 
 final imageProvider = NotifierProvider<ImageNotifier, XFile?>(() {

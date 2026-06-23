@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/image_provider.dart';
 import '../providers/gemini_provider.dart';
+import '../providers/text_selection_provider.dart';
 
 class ResultScreen extends ConsumerWidget {
   const ResultScreen({super.key});
@@ -31,8 +32,13 @@ class ResultScreen extends ConsumerWidget {
         error: (error, stack) => _BuildErrorState(
           errorMessage: error.toString(),
           onRetry: () {
-            if (selectedImage != null) {
-              ref.read(geminiNotifierProvider.notifier).translateImage(selectedImage);
+            final combinedText = ref
+                .read(textSelectionProvider)
+                .combinedSelectedText;
+            if (selectedImage != null && combinedText.isNotEmpty) {
+              ref
+                  .read(geminiNotifierProvider.notifier)
+                  .translateSelectedBlock(selectedImage, combinedText);
             }
           },
         ),
@@ -181,11 +187,7 @@ class _BuildResultCard extends StatelessWidget {
                   color: iconColor.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: Icon(
-                  icon,
-                  size: 20,
-                  color: iconColor,
-                ),
+                child: Icon(icon, size: 20, color: iconColor),
               ),
               const SizedBox(width: 12),
               Text(
@@ -197,10 +199,7 @@ class _BuildResultCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 14),
-          Text(
-            content,
-            style: contentStyle ?? theme.textTheme.bodyLarge,
-          ),
+          Text(content, style: contentStyle ?? theme.textTheme.bodyLarge),
         ],
       ),
     );
@@ -224,15 +223,10 @@ class _BuildLoadingState extends StatelessWidget {
           Positioned.fill(
             child: Opacity(
               opacity: 0.3,
-              child: Image.file(
-                File(imagePath!),
-                fit: BoxFit.cover,
-              ),
+              child: Image.file(File(imagePath!), fit: BoxFit.cover),
             ),
           ),
-        Container(
-          color: colorScheme.surface.withValues(alpha: 0.85),
-        ),
+        Container(color: colorScheme.surface.withValues(alpha: 0.85)),
         Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -255,7 +249,9 @@ class _BuildLoadingState extends StatelessWidget {
                   height: 50,
                   child: CircularProgressIndicator(
                     strokeWidth: 4,
-                    valueColor: AlwaysStoppedAnimation<Color>(colorScheme.primary),
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                      colorScheme.primary,
+                    ),
                   ),
                 ),
               ),
@@ -285,10 +281,7 @@ class _BuildErrorState extends StatelessWidget {
   final String errorMessage;
   final VoidCallback onRetry;
 
-  const _BuildErrorState({
-    required this.errorMessage,
-    required this.onRetry,
-  });
+  const _BuildErrorState({required this.errorMessage, required this.onRetry});
 
   @override
   Widget build(BuildContext context) {
@@ -333,7 +326,10 @@ class _BuildErrorState extends StatelessWidget {
               style: ElevatedButton.styleFrom(
                 backgroundColor: colorScheme.primary,
                 foregroundColor: colorScheme.onPrimary,
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 12,
+                ),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),

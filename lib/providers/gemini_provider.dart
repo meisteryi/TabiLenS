@@ -3,6 +3,8 @@ import 'package:image_picker/image_picker.dart';
 import '../data/models/translation_result.dart';
 import '../data/services/gemini_service.dart';
 
+import 'history_provider.dart';
+
 final geminiServiceProvider = Provider<GeminiService>((ref) {
   return GeminiService();
 });
@@ -14,18 +16,29 @@ class GeminiNotifier extends AsyncNotifier<TranslationResult?> {
     return null;
   }
 
-  Future<void> translateImage(XFile image) async {
+
+
+  Future<void> translateSelectedBlock(XFile image, String selectedText) async {
     state = const AsyncLoading();
     
     state = await AsyncValue.guard(() async {
       final bytes = await image.readAsBytes();
       final service = ref.read(geminiServiceProvider);
-      return await service.analyzeImage(bytes);
+      final result = await service.analyzeSelectedText(bytes, selectedText);
+      
+      // Save to scan history
+      ref.read(historyProvider.notifier).addHistory(image, result);
+      
+      return result;
     });
   }
 
   void reset() {
     state = const AsyncData(null);
+  }
+
+  void setLoadedResult(TranslationResult result) {
+    state = AsyncData(result);
   }
 }
 
