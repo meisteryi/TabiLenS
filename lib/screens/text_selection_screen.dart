@@ -187,12 +187,37 @@ class _TextSelectionScreenState extends ConsumerState<TextSelectionScreen> {
                                             renderedWidth /
                                             1000;
 
-                                        final double left = xmin;
-                                        final double top = ymin;
-                                        final double width = (xmax - xmin)
-                                            .clamp(20.0, renderedWidth);
-                                        final double height = (ymax - ymin)
-                                            .clamp(20.0, renderedHeight);
+                                        // Add a small rendering margin to prevent tight cropping or slight coordinate shifts
+                                        final double boxWidth = xmax - xmin;
+                                        final double boxHeight = ymax - ymin;
+                                        final double paddingX =
+                                            boxWidth * 0.05; // 5% padding
+                                        final double paddingY =
+                                            boxHeight * 0.05; // 5% padding
+                                        final double left = (xmin - paddingX)
+                                            .clamp(0.0, renderedWidth);
+                                        final double top = (ymin - paddingY)
+                                            .clamp(0.0, renderedHeight);
+                                        final double maxWidth =
+                                            (renderedWidth - left).clamp(
+                                              0.0,
+                                              renderedWidth,
+                                            );
+                                        final double maxHeight =
+                                            (renderedHeight - top).clamp(
+                                              0.0,
+                                              renderedHeight,
+                                            );
+                                        final double width =
+                                            (boxWidth + (paddingX * 2)).clamp(
+                                              0.0,
+                                              maxWidth,
+                                            );
+                                        final double height =
+                                            (boxHeight + (paddingY * 2)).clamp(
+                                              0.0,
+                                              maxHeight,
+                                            );
 
                                         final isSelected = selectionState
                                             .selectedBlocks
