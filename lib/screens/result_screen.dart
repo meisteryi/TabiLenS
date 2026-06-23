@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/image_provider.dart';
 import '../providers/gemini_provider.dart';
 import '../providers/text_selection_provider.dart';
+import '../data/services/tts_service.dart';
 
 class ResultScreen extends ConsumerWidget {
   const ResultScreen({super.key});
@@ -12,6 +13,7 @@ class ResultScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final selectedImage = ref.watch(imageProvider);
     final geminiState = ref.watch(geminiNotifierProvider);
+    final isTtsSpeaking = ref.watch(ttsProvider);
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
 
@@ -93,6 +95,22 @@ class ResultScreen extends ConsumerWidget {
                           fontSize: 16,
                           letterSpacing: 0.5,
                         ),
+                        action: IconButton(
+                          icon: Icon(
+                            isTtsSpeaking
+                                ? Icons.stop_circle_rounded
+                                : Icons.volume_up_rounded,
+                            color: colorScheme.primary,
+                          ),
+                          onPressed: () {
+                            final ttsNotifier = ref.read(ttsProvider.notifier);
+                            if (isTtsSpeaking) {
+                              ttsNotifier.stop();
+                            } else {
+                              ttsNotifier.speak(result.originalText);
+                            }
+                          },
+                        ),
                       ),
                       const SizedBox(height: 16),
 
@@ -146,6 +164,7 @@ class _BuildResultCard extends StatelessWidget {
   final Color iconColor;
   final String content;
   final TextStyle? contentStyle;
+  final Widget? action;
 
   const _BuildResultCard({
     required this.title,
@@ -153,6 +172,7 @@ class _BuildResultCard extends StatelessWidget {
     required this.iconColor,
     required this.content,
     this.contentStyle,
+    this.action,
   });
 
   @override
@@ -191,12 +211,15 @@ class _BuildResultCard extends StatelessWidget {
                 child: Icon(icon, size: 20, color: iconColor),
               ),
               const SizedBox(width: 12),
-              Text(
-                title,
-                style: theme.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
+              Expanded(
+                child: Text(
+                  title,
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
+              if (action != null) action!,
             ],
           ),
           const SizedBox(height: 14),
