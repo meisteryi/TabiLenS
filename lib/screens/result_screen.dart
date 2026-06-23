@@ -180,7 +180,6 @@ class _BuildResultCard extends StatelessWidget {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
 
-
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(20),
