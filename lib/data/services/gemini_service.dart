@@ -44,28 +44,30 @@ class GeminiService {
       ]),
     ];
 
-    try {
-      final response = await _model.generateContent(content);
-      final rawText = response.text;
-      if (rawText == null || rawText.isEmpty) {
-        return [];
-      }
-
-      // Clean markdown block wrappers if present
-      String cleanedJson = rawText.trim();
-      if (cleanedJson.startsWith('```')) {
-        cleanedJson = cleanedJson.replaceFirst(RegExp(r'^```(json)?'), '');
-        if (cleanedJson.endsWith('```')) {
-          cleanedJson = cleanedJson.substring(0, cleanedJson.length - 3);
+    return _retryOnRateLimit(() async {
+      try {
+        final response = await _model.generateContent(content);
+        final rawText = response.text;
+        if (rawText == null || rawText.isEmpty) {
+          return [];
         }
-        cleanedJson = cleanedJson.trim();
-      }
 
-      final List<dynamic> parsed = json.decode(cleanedJson) as List<dynamic>;
-      return parsed.map((e) => DetectedTextBlock.fromJson(e as Map<String, dynamic>)).toList();
-    } catch (e) {
-      throw Exception('텍스트 영역 인식에 실패했습니다: $e');
-    }
+        // Clean markdown block wrappers if present
+        String cleanedJson = rawText.trim();
+        if (cleanedJson.startsWith('```')) {
+          cleanedJson = cleanedJson.replaceFirst(RegExp(r'^```(json)?'), '');
+          if (cleanedJson.endsWith('```')) {
+            cleanedJson = cleanedJson.substring(0, cleanedJson.length - 3);
+          }
+          cleanedJson = cleanedJson.trim();
+        }
+
+        final List<dynamic> parsed = json.decode(cleanedJson) as List<dynamic>;
+        return parsed.map((e) => DetectedTextBlock.fromJson(e as Map<String, dynamic>)).toList();
+      } catch (e) {
+        throw Exception('텍스트 영역 인식에 실패했습니다: $e');
+      }
+    });
   }
 
   /// 2. Perform deep translation and cultural analysis on only the selected text item
@@ -95,15 +97,44 @@ class GeminiService {
       ]),
     ];
 
-    try {
-      final response = await _model.generateContent(content);
-      final rawText = response.text;
-      if (rawText == null || rawText.isEmpty) {
-        throw Exception('Gemini API가 빈 응답을 반환했습니다.');
+    return _retryOnRateLimit(() async {
+      try {
+        final response = await _model.generateContent(content);
+        final rawText = response.text;
+        if (rawText == null || rawText.isEmpty) {
+          throw Exception('Gemini API가 빈 응답을 반환했습니다.');
+        }
+        return TranslationResult.fromRawJson(rawText);
+      } catch (e) {
+        throw Exception('Gemini 상세 분석에 실패했습니다: $e');
       }
-      return TranslationResult.fromRawJson(rawText);
-    } catch (e) {
-      throw Exception('Gemini 상세 분석에 실패했습니다: $e');
+    });
+  }
+
+  /// Helper to retry an API call with exponential backoff on rate limits / overload errors
+  Future<T> _retryOnRateLimit<T>(Future<T> Function() apiCall, {int maxRetries = 3}) async {
+    int delaySeconds = 2;
+    for (int attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        return await apiCall();
+      } catch (e) {
+        final errorStr = e.toString().toLowerCase();
+        final isRateLimitOrOverload = errorStr.contains('429') ||
+            errorStr.contains('quota exceeded') ||
+            errorStr.contains('exhausted') ||
+            errorStr.contains('overloaded') ||
+            errorStr.contains('503') ||
+            errorStr.contains('limit');
+
+        if (isRateLimitOrOverload && attempt < maxRetries) {
+          // Wait with exponential backoff
+          await Future.delayed(Duration(seconds: delaySeconds));
+          delaySeconds *= 2; // Increase delay (2s -> 4s -> 8s)
+          continue;
+        }
+        rethrow;
+      }
     }
+    throw Exception('요청이 너무 많아 실패했습니다. 잠시 후 다시 시도해 주세요.');
   }
 }
