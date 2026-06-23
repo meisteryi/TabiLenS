@@ -17,17 +17,15 @@ class HomeScreen extends ConsumerWidget {
     try {
       final imageNotifier = ref.read(imageProvider.notifier);
       await imageNotifier.pickImage(source);
-      
+
       final selectedImage = ref.read(imageProvider);
       if (selectedImage != null && context.mounted) {
         // Trigger block detection
         ref.read(textSelectionProvider.notifier).detectBlocks(selectedImage);
-        
+
         // Navigate to the selection screen
         Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (context) => const TextSelectionScreen(),
-          ),
+          MaterialPageRoute(builder: (context) => const TextSelectionScreen()),
         );
       }
     } catch (e) {
@@ -58,9 +56,7 @@ class HomeScreen extends ConsumerWidget {
             tooltip: '번역 기록',
             onPressed: () {
               Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (context) => const HistoryScreen(),
-                ),
+                MaterialPageRoute(builder: (context) => const HistoryScreen()),
               );
             },
           ),
@@ -81,7 +77,10 @@ class HomeScreen extends ConsumerWidget {
         ),
         child: SafeArea(
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
+            padding: const EdgeInsets.symmetric(
+              horizontal: 24.0,
+              vertical: 16.0,
+            ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
@@ -128,15 +127,17 @@ class HomeScreen extends ConsumerWidget {
                   label: '카메라로 촬영하기',
                   subtitle: '현지 메뉴판, 길거리 간판 촬영',
                   color: colorScheme.primary,
-                  onTap: () => _handleImageSelection(context, ref, ImageSource.camera),
+                  onTap: () =>
+                      _handleImageSelection(context, ref, ImageSource.camera),
                 ),
                 const SizedBox(height: 16),
                 _BuildActionButton(
                   icon: Icons.photo_library_rounded,
                   label: '갤러리에서 선택하기',
-                  subtitle: '저장된 이미지 번역 및 문화 해설',
+                  subtitle: '저장된 이미지 번역 및 해설',
                   color: colorScheme.secondary,
-                  onTap: () => _handleImageSelection(context, ref, ImageSource.gallery),
+                  onTap: () =>
+                      _handleImageSelection(context, ref, ImageSource.gallery),
                 ),
                 const SizedBox(height: 40),
                 Center(
@@ -200,11 +201,7 @@ class _BuildActionButton extends StatelessWidget {
                   color: color.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(14),
                 ),
-                child: Icon(
-                  icon,
-                  size: 28,
-                  color: color,
-                ),
+                child: Icon(icon, size: 28, color: color),
               ),
               const SizedBox(width: 18),
               Expanded(
@@ -219,10 +216,7 @@ class _BuildActionButton extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 4),
-                    Text(
-                      subtitle,
-                      style: theme.textTheme.bodyMedium,
-                    ),
+                    Text(subtitle, style: theme.textTheme.bodyMedium),
                   ],
                 ),
               ),
