@@ -28,8 +28,10 @@ class TranslationResult {
       context: json['context']?.toString() ?? '',
       tip: json['tip']?.toString() ?? '',
       orderPhraseJapanese: json['order_phrase_japanese']?.toString() ?? '',
-      orderPhrasePronunciation: json['order_phrase_pronunciation']?.toString() ?? '',
-      orderPhraseTranslation: json['order_phrase_translation']?.toString() ?? '',
+      orderPhrasePronunciation:
+          json['order_phrase_pronunciation']?.toString() ?? '',
+      orderPhraseTranslation:
+          json['order_phrase_translation']?.toString() ?? '',
       imageKeyword: json['image_keyword']?.toString() ?? '',
     );
   }
@@ -47,8 +49,9 @@ class TranslationResult {
         }
         cleanedJson = cleanedJson.trim();
       }
-      
-      final Map<String, dynamic> parsed = json.decode(cleanedJson) as Map<String, dynamic>;
+
+      final Map<String, dynamic> parsed =
+          json.decode(cleanedJson) as Map<String, dynamic>;
       return TranslationResult.fromJson(parsed);
     } catch (e) {
       // Fallback/Error parsing

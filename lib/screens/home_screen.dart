@@ -8,12 +8,31 @@ import '../providers/text_selection_provider.dart';
 
 import 'favorites_screen.dart';
 
-class HomeScreen extends ConsumerWidget {
+class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
+
+  @override
+  ConsumerState<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends ConsumerState<HomeScreen> {
+  bool _animationStarted = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // 1.2 seconds delay, then trigger slide up animation
+    Future.delayed(const Duration(milliseconds: 1200), () {
+      if (mounted) {
+        setState(() {
+          _animationStarted = true;
+        });
+      }
+    });
+  }
 
   Future<void> _handleImageSelection(
     BuildContext context,
-    WidgetRef ref,
     ImageSource source,
   ) async {
     try {
@@ -43,7 +62,7 @@ class HomeScreen extends ConsumerWidget {
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
 
@@ -52,24 +71,36 @@ class HomeScreen extends ConsumerWidget {
         backgroundColor: Colors.transparent,
         elevation: 0,
         scrolledUnderElevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.star_border_rounded),
-          tooltip: '즐겨찾기',
-          onPressed: () {
-            Navigator.of(context).push(
-              MaterialPageRoute(builder: (context) => const FavoritesScreen()),
-            );
-          },
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.history_rounded),
-            tooltip: '번역 기록',
+        leading: AnimatedOpacity(
+          opacity: _animationStarted ? 1.0 : 0.0,
+          duration: const Duration(milliseconds: 800),
+          child: IconButton(
+            icon: const Icon(Icons.star_border_rounded),
+            tooltip: '즐겨찾기',
             onPressed: () {
               Navigator.of(context).push(
-                MaterialPageRoute(builder: (context) => const HistoryScreen()),
+                MaterialPageRoute(
+                  builder: (context) => const FavoritesScreen(),
+                ),
               );
             },
+          ),
+        ),
+        actions: [
+          AnimatedOpacity(
+            opacity: _animationStarted ? 1.0 : 0.0,
+            duration: const Duration(milliseconds: 800),
+            child: IconButton(
+              icon: const Icon(Icons.history_rounded),
+              tooltip: '번역 기록',
+              onPressed: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) => const HistoryScreen(),
+                  ),
+                );
+              },
+            ),
           ),
           const SizedBox(width: 8),
         ],
@@ -87,18 +118,19 @@ class HomeScreen extends ConsumerWidget {
           ),
         ),
         child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(
-              horizontal: 24.0,
-              vertical: 16.0,
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                const Spacer(),
-                // App Branding / Logo Header
-                Center(
+          child: Stack(
+            children: [
+              // 1. Splash / Logo Header (starts centered, slides up to top)
+              AnimatedAlign(
+                alignment: _animationStarted
+                    ? const Alignment(0, -0.45)
+                    : Alignment.center,
+                duration: const Duration(milliseconds: 1000),
+                curve: Curves.easeInOutCubic,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24.0),
                   child: Column(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
                       Container(
                         padding: const EdgeInsets.all(16),
@@ -114,7 +146,7 @@ class HomeScreen extends ConsumerWidget {
                       ),
                       const SizedBox(height: 24),
                       Text(
-                        'TabiLens',
+                        'TabiLenS',
                         style: theme.textTheme.headlineMedium?.copyWith(
                           fontSize: 32,
                           letterSpacing: -1.0,
@@ -122,7 +154,7 @@ class HomeScreen extends ConsumerWidget {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        '일본 현지 메뉴판과 간판 속 숨겨진\n문화적 맥락과 꿀팁을 읽어보세요',
+                        '일본 현지 메뉴판이 읽기 힘드신가요?\n음식의 이름과 꿀팁을 읽어보세요.',
                         textAlign: TextAlign.center,
                         style: theme.textTheme.bodyLarge?.copyWith(
                           color: colorScheme.onSurface.withValues(alpha: 0.7),
@@ -131,37 +163,69 @@ class HomeScreen extends ConsumerWidget {
                     ],
                   ),
                 ),
-                const Spacer(),
-                // Interaction Cards
-                _BuildActionButton(
-                  icon: Icons.camera_alt_rounded,
-                  label: '카메라로 촬영하기',
-                  subtitle: '현지 메뉴판, 길거리 간판 촬영',
-                  color: colorScheme.primary,
-                  onTap: () =>
-                      _handleImageSelection(context, ref, ImageSource.camera),
-                ),
-                const SizedBox(height: 16),
-                _BuildActionButton(
-                  icon: Icons.photo_library_rounded,
-                  label: '갤러리에서 선택하기',
-                  subtitle: '저장된 이미지 번역 및 해설',
-                  color: colorScheme.secondary,
-                  onTap: () =>
-                      _handleImageSelection(context, ref, ImageSource.gallery),
-                ),
-                const SizedBox(height: 40),
-                Center(
-                  child: Text(
-                    'Gemini 2.5 Flash Lite AI 기반 작동',
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      fontSize: 11,
-                      color: colorScheme.onSurface.withValues(alpha: 0.4),
+              ),
+
+              // 2. Action Buttons & Version Text (fade in & slide up from bottom)
+              Align(
+                alignment: Alignment.bottomCenter,
+                child: AnimatedOpacity(
+                  opacity: _animationStarted ? 1.0 : 0.0,
+                  duration: const Duration(milliseconds: 800),
+                  child: AnimatedSlide(
+                    offset: _animationStarted
+                        ? Offset.zero
+                        : const Offset(0, 0.15),
+                    duration: const Duration(milliseconds: 800),
+                    curve: Curves.easeOutCubic,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 24.0,
+                        vertical: 16.0,
+                      ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          _BuildActionButton(
+                            icon: Icons.camera_alt_rounded,
+                            label: '카메라로 촬영하기',
+                            subtitle: '현지 메뉴를 촬영해 주세요',
+                            color: colorScheme.primary,
+                            onTap: () => _handleImageSelection(
+                              context,
+                              ImageSource.camera,
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          _BuildActionButton(
+                            icon: Icons.photo_library_rounded,
+                            label: '갤러리에서 선택하기',
+                            subtitle: '저장된 이미지에서 번역!',
+                            color: colorScheme.secondary,
+                            onTap: () => _handleImageSelection(
+                              context,
+                              ImageSource.gallery,
+                            ),
+                          ),
+                          const SizedBox(height: 40),
+                          Center(
+                            child: Text(
+                              'Gemini 기반 텍스트 인식 및 번역',
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                fontSize: 11,
+                                color: colorScheme.onSurface.withValues(
+                                  alpha: 0.4,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),
