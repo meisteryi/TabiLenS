@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'providers/shared_preferences_provider.dart';
 import 'core/theme/app_theme.dart';
 import 'screens/home_screen.dart';
 
@@ -15,7 +17,16 @@ void main() async {
     debugPrint('Error loading .env file: $e');
   }
 
-  runApp(const ProviderScope(child: MyApp()));
+  final prefs = await SharedPreferences.getInstance();
+
+  runApp(
+    ProviderScope(
+      overrides: [
+        sharedPreferencesProvider.overrideWithValue(prefs),
+      ],
+      child: const MyApp(),
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {

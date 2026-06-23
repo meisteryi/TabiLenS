@@ -1,5 +1,7 @@
+import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../data/models/translation_result.dart';
+import 'shared_preferences_provider.dart';
 
 class FavoriteItem {
   final String id;
@@ -58,11 +60,46 @@ class FavoriteFolder {
       items: items ?? this.items,
     );
   }
+
+  factory FavoriteFolder.fromJson(Map<String, dynamic> json) {
+    final rawItems = json['items'] as List<dynamic>? ?? [];
+    return FavoriteFolder(
+      id: json['id']?.toString() ?? '',
+      name: json['name']?.toString() ?? '',
+      emoji: json['emoji']?.toString() ?? '',
+      items: rawItems
+          .map((item) => FavoriteItem.fromJson(item as Map<String, dynamic>))
+          .toList(),
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'name': name,
+      'emoji': emoji,
+      'items': items.map((item) => item.toJson()).toList(),
+    };
+  }
 }
 
 class FavoritesNotifier extends Notifier<List<FavoriteFolder>> {
+  static const _storageKey = 'favorite_folders';
+
   @override
   List<FavoriteFolder> build() {
+    final prefs = ref.watch(sharedPreferencesProvider);
+    final favJsonString = prefs.getString(_storageKey);
+    if (favJsonString != null) {
+      try {
+        final List<dynamic> decodedList = jsonDecode(favJsonString);
+        return decodedList
+            .map((folder) => FavoriteFolder.fromJson(folder as Map<String, dynamic>))
+            .toList();
+      } catch (e) {
+        // Fallback to default folder if decode fails
+      }
+    }
     return [
       FavoriteFolder(
         id: 'default',
@@ -73,6 +110,12 @@ class FavoritesNotifier extends Notifier<List<FavoriteFolder>> {
     ];
   }
 
+  void _saveToStorage(List<FavoriteFolder> folders) {
+    final prefs = ref.read(sharedPreferencesProvider);
+    final jsonString = jsonEncode(folders.map((f) => f.toJson()).toList());
+    prefs.setString(_storageKey, jsonString);
+  }
+
   void createFolder(String name, String emoji) {
     final newFolder = FavoriteFolder(
       id: DateTime.now().microsecondsSinceEpoch.toString(),
@@ -81,11 +124,13 @@ class FavoritesNotifier extends Notifier<List<FavoriteFolder>> {
       items: [],
     );
     state = [...state, newFolder];
+    _saveToStorage(state);
   }
 
   void deleteFolder(String id) {
     if (id == 'default') return;
     state = state.where((f) => f.id != id).toList();
+    _saveToStorage(state);
   }
 
   void toggleFavorite(String folderId, String imagePath, TranslationResult result) {
@@ -109,6 +154,7 @@ class FavoritesNotifier extends Notifier<List<FavoriteFolder>> {
       }
       return folder;
     }).toList();
+    _saveToStorage(state);
   }
 
   void removeFromFolder(String folderId, String itemId) {
@@ -120,6 +166,7 @@ class FavoritesNotifier extends Notifier<List<FavoriteFolder>> {
       }
       return folder;
     }).toList();
+    _saveToStorage(state);
   }
 
   bool isItemInFolder(String folderId, String originalText) {
@@ -135,3 +182,5 @@ class FavoritesNotifier extends Notifier<List<FavoriteFolder>> {
 final favoritesProvider = NotifierProvider<FavoritesNotifier, List<FavoriteFolder>>(() {
   return FavoritesNotifier();
 });
+
+
