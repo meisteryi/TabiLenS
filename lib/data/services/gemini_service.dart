@@ -10,7 +10,7 @@ class GeminiService {
   final GenerativeModel _model;
 
   GeminiService() : _model = GenerativeModel(
-          model: 'gemini-2.5-flash-lite',
+          model: 'gemini-2.5-flash',
           apiKey: dotenv.env[EnvKeys.geminiApiKey] ?? '',
           generationConfig: GenerationConfig(
             responseMimeType: 'application/json',
