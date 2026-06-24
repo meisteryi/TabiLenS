@@ -228,7 +228,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                               title: 'TabiLenS',
                               subtitle:
                                   '영어 현지 메뉴판이 읽기 힘드신가요?\n음식의 이름과 꿀팁을 읽어보세요.',
-                              topLeftChar: 'R',
+                              topLeftChar: 'E',
                               bottomRightChar: '밥',
                             ),
                             // Japanese

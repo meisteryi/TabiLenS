@@ -89,32 +89,93 @@ class ResultScreen extends ConsumerWidget {
               children: [
                 // Display input image
                 if (selectedImage != null)
-                  Container(
-                    height: 220,
-                    width: double.infinity,
-                    margin: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(20),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.08),
-                          blurRadius: 10,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(20),
-                      child: kIsWeb
-                          ? Image.network(
-                              selectedImage.path,
-                              fit: BoxFit.cover,
-                            )
-                          : Image.file(
-                              File(selectedImage.path),
-                              fit: BoxFit.cover,
+                  Builder(
+                    builder: (context) {
+                      final imageFileExists = kIsWeb || File(selectedImage.path).existsSync();
+                      if (!imageFileExists) {
+                        return Container(
+                          height: 180,
+                          width: double.infinity,
+                          margin: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: colorScheme.onSurface.withValues(alpha: 0.03),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(
+                              color: colorScheme.onSurface.withValues(alpha: 0.08),
                             ),
-                    ),
+                          ),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.image_not_supported_rounded,
+                                size: 40,
+                                color: colorScheme.onSurface.withValues(alpha: 0.3),
+                              ),
+                              const SizedBox(height: 12),
+                              Text(
+                                '이미지를 표시할 수 없습니다',
+                                style: theme.textTheme.bodyMedium?.copyWith(
+                                  color: colorScheme.onSurface.withValues(alpha: 0.5),
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                '원본 사진 파일이 삭제되었거나 존재하지 않습니다.',
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  color: colorScheme.onSurface.withValues(alpha: 0.4),
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      }
+
+                      return Container(
+                        height: 220,
+                        width: double.infinity,
+                        margin: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(20),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.08),
+                              blurRadius: 10,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(20),
+                          child: kIsWeb
+                              ? Image.network(
+                                  selectedImage.path,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) => Container(
+                                    color: colorScheme.onSurface.withValues(alpha: 0.05),
+                                    child: Icon(
+                                      Icons.broken_image_rounded,
+                                      size: 40,
+                                      color: colorScheme.onSurface.withValues(alpha: 0.3),
+                                    ),
+                                  ),
+                                )
+                              : Image.file(
+                                  File(selectedImage.path),
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) => Container(
+                                    color: colorScheme.onSurface.withValues(alpha: 0.05),
+                                    child: Icon(
+                                      Icons.broken_image_rounded,
+                                      size: 40,
+                                      color: colorScheme.onSurface.withValues(alpha: 0.3),
+                                    ),
+                                  ),
+                                ),
+                        ),
+                      );
+                    },
                   ),
 
                 Padding(
@@ -345,13 +406,23 @@ class _BuildLoadingState extends StatelessWidget {
     return Stack(
       fit: StackFit.expand,
       children: [
-        if (imagePath != null)
+        if (imagePath != null && (kIsWeb || File(imagePath!).existsSync()))
           Positioned.fill(
             child: Opacity(
               opacity: 0.3,
               child: kIsWeb
-                  ? Image.network(imagePath!, fit: BoxFit.cover)
-                  : Image.file(File(imagePath!), fit: BoxFit.cover),
+                  ? Image.network(
+                      imagePath!,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) =>
+                          const SizedBox.shrink(),
+                    )
+                  : Image.file(
+                      File(imagePath!),
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) =>
+                          const SizedBox.shrink(),
+                    ),
             ),
           ),
         Container(color: colorScheme.surface.withValues(alpha: 0.85)),
