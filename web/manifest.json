@@ -1,6 +1,6 @@
 {
-    "name": "detect_and_explain",
-    "short_name": "detect_and_explain",
+    "name": "TabiLenS",
+    "short_name": "TabiLenS",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
