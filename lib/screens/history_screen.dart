@@ -9,6 +9,7 @@ import '../providers/favorites_provider.dart';
 import '../data/models/history_item.dart';
 import 'package:flutter/foundation.dart';
 import 'result_screen.dart';
+import '../core/localization/app_strings.dart';
 
 class HistoryScreen extends ConsumerWidget {
   const HistoryScreen({super.key});
@@ -27,10 +28,11 @@ class HistoryScreen extends ConsumerWidget {
     final historyList = ref.watch(historyProvider);
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final l10n = ref.watch(l10nProvider);
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('번역 기록'),
+        title: Text(l10n.historyTitle),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new_rounded),
           onPressed: () => Navigator.of(context).pop(),
@@ -42,12 +44,12 @@ class HistoryScreen extends ConsumerWidget {
                 showDialog(
                   context: context,
                   builder: (context) => AlertDialog(
-                    title: const Text('전체 삭제'),
-                    content: const Text('모든 번역 기록을 삭제하시겠습니까?'),
+                    title: Text(l10n.clearAllBtn),
+                    content: Text(l10n.confirmClearAllTitle),
                     actions: [
                       TextButton(
                         onPressed: () => Navigator.of(context).pop(),
-                        child: const Text('취소'),
+                        child: Text(l10n.cancelBtn),
                       ),
                       TextButton(
                         onPressed: () {
@@ -57,14 +59,14 @@ class HistoryScreen extends ConsumerWidget {
                         style: TextButton.styleFrom(
                           foregroundColor: colorScheme.error,
                         ),
-                        child: const Text('삭제'),
+                        child: Text(l10n.deleteBtn),
                       ),
                     ],
                   ),
                 );
               },
               child: Text(
-                '전체 삭제',
+                l10n.clearAllBtn,
                 style: TextStyle(color: colorScheme.error),
               ),
             ),
@@ -89,7 +91,7 @@ class HistoryScreen extends ConsumerWidget {
                   ),
                   const SizedBox(height: 24),
                   Text(
-                    '아직 번역 기록이 없습니다.',
+                    l10n.emptyHistoryTitle,
                     style: theme.textTheme.titleMedium?.copyWith(
                       color: colorScheme.onSurface.withValues(alpha: 0.6),
                       fontWeight: FontWeight.bold,
@@ -97,7 +99,7 @@ class HistoryScreen extends ConsumerWidget {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    '카메라로 촬영하거나 갤러리에서 선택해\n가이드를 받아보세요!',
+                    l10n.emptyHistoryDesc,
                     textAlign: TextAlign.center,
                     style: theme.textTheme.bodyMedium,
                   ),
@@ -153,9 +155,9 @@ class HistoryScreen extends ConsumerWidget {
                     if (direction == DismissDirection.endToStart) {
                       ref.read(historyProvider.notifier).deleteHistory(item.id);
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('번역 기록이 삭제되었습니다.'),
-                          duration: Duration(seconds: 2),
+                        SnackBar(
+                          content: Text(l10n.itemDeleted),
+                          duration: const Duration(seconds: 2),
                         ),
                       );
                     }
@@ -286,6 +288,7 @@ class HistoryScreen extends ConsumerWidget {
         return Consumer(
           builder: (context, ref, child) {
             final folders = ref.watch(favoritesProvider);
+            final l10n = ref.watch(l10nProvider);
 
             return SafeArea(
               child: Padding(
@@ -298,7 +301,7 @@ class HistoryScreen extends ConsumerWidget {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          '즐겨찾기 폴더 선택',
+                          l10n.selectFavFolderTitle,
                           style: theme.textTheme.titleMedium?.copyWith(
                             fontWeight: FontWeight.bold,
                             fontSize: 18,
@@ -307,7 +310,7 @@ class HistoryScreen extends ConsumerWidget {
                         IconButton(
                           icon: const Icon(Icons.create_new_folder_outlined),
                           color: colorScheme.primary,
-                          tooltip: '새 폴더 추가',
+                          tooltip: l10n.addNewFolderBtn,
                           onPressed: () => _showCreateFolderDialog(context, ref),
                         ),
                       ],
@@ -317,7 +320,7 @@ class HistoryScreen extends ConsumerWidget {
                       const Padding(
                         padding: EdgeInsets.symmetric(vertical: 24),
                         child: Center(
-                          child: Text('폴더가 없습니다.'),
+                          child: Text('No folders.'),
                         ),
                       )
                     else
@@ -348,7 +351,7 @@ class HistoryScreen extends ConsumerWidget {
                                   fontWeight: FontWeight.w600,
                                 ),
                               ),
-                              subtitle: Text('항목 ${folder.items.length}개'),
+                              subtitle: Text(l10n.itemsCount(folder.items.length)),
                               trailing: Icon(
                                 isAdded
                                     ? Icons.bookmark_added_rounded
@@ -372,8 +375,8 @@ class HistoryScreen extends ConsumerWidget {
                                   SnackBar(
                                     content: Text(
                                       isAdded
-                                          ? '${folder.name}에서 제거되었습니다.'
-                                          : '${folder.name}에 추가되었습니다.',
+                                          ? l10n.removedFromFolder(folder.name)
+                                          : '${folder.name}: ${l10n.addedToFavs}',
                                     ),
                                     duration: const Duration(seconds: 2),
                                   ),
@@ -397,27 +400,29 @@ class HistoryScreen extends ConsumerWidget {
     final nameController = TextEditingController();
     final emojiController = TextEditingController();
 
+    final l10n = ref.read(l10nProvider);
+
     showDialog(
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: const Text('새 폴더 추가'),
+          title: Text(l10n.newFavFolderTitle),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               TextField(
                 controller: nameController,
-                decoration: const InputDecoration(
-                  labelText: '폴더 이름',
-                  hintText: '예: 맛집 메뉴, 필수 단어',
+                decoration: InputDecoration(
+                  labelText: l10n.folderNameLabel,
+                  hintText: l10n.folderHintText,
                 ),
                 autofocus: true,
               ),
               const SizedBox(height: 12),
               TextField(
                 controller: emojiController,
-                decoration: const InputDecoration(
-                  labelText: '대표 이모지 (선택)',
+                decoration: InputDecoration(
+                  labelText: l10n.emojiSelectionLabel,
                   hintText: '예: 🍣, ⭐, 📁',
                 ),
               ),
@@ -426,7 +431,7 @@ class HistoryScreen extends ConsumerWidget {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('취소'),
+              child: Text(l10n.cancelBtn),
             ),
             TextButton(
               onPressed: () {
@@ -439,7 +444,7 @@ class HistoryScreen extends ConsumerWidget {
                   Navigator.pop(context);
                 }
               },
-              child: const Text('만들기'),
+              child: Text(l10n.createBtn),
             ),
           ],
         );

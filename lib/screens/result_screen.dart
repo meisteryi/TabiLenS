@@ -8,6 +8,7 @@ import '../data/services/tts_service.dart';
 import '../providers/favorites_provider.dart';
 import '../data/models/translation_result.dart';
 import 'package:flutter/foundation.dart';
+import '../core/localization/app_strings.dart';
 
 class ResultScreen extends ConsumerWidget {
   const ResultScreen({super.key});
@@ -19,10 +20,11 @@ class ResultScreen extends ConsumerWidget {
     final isTtsSpeaking = ref.watch(ttsProvider);
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final l10n = ref.watch(l10nProvider);
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('분석 결과'),
+        title: Text(l10n.analysisResultTitle),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new_rounded),
           onPressed: () {
@@ -114,7 +116,7 @@ class ResultScreen extends ConsumerWidget {
                               ),
                               const SizedBox(height: 12),
                               Text(
-                                '이미지를 표시할 수 없습니다',
+                                l10n.imageLoadError,
                                 style: theme.textTheme.bodyMedium?.copyWith(
                                   color: colorScheme.onSurface.withValues(alpha: 0.5),
                                   fontWeight: FontWeight.bold,
@@ -122,7 +124,7 @@ class ResultScreen extends ConsumerWidget {
                               ),
                               const SizedBox(height: 4),
                               Text(
-                                '원본 사진 파일이 삭제되었거나 존재하지 않습니다.',
+                                l10n.imageMissingDesc,
                                 style: theme.textTheme.bodySmall?.copyWith(
                                   color: colorScheme.onSurface.withValues(alpha: 0.4),
                                 ),
@@ -184,7 +186,7 @@ class ResultScreen extends ConsumerWidget {
                     children: [
                       // 1. Original Text Card
                       _BuildResultCard(
-                        title: '인식된 일본어 원문',
+                        title: l10n.originalTextLabel,
                         icon: Icons.language_rounded,
                         iconColor: colorScheme.secondary,
                         content: result.originalText,
@@ -214,7 +216,7 @@ class ResultScreen extends ConsumerWidget {
 
                       // 2. Translation Card
                       _BuildResultCard(
-                        title: '한국어 번역',
+                        title: l10n.translationLabel,
                         icon: Icons.translate_rounded,
                         iconColor: colorScheme.primary,
                         content: result.translation,
@@ -227,7 +229,7 @@ class ResultScreen extends ConsumerWidget {
 
                       // 3. Cultural Context Card
                       _BuildResultCard(
-                        title: '문화적 해설',
+                        title: l10n.explanationLabel,
                         icon: Icons.auto_awesome_rounded,
                         iconColor: Colors.amber.shade700,
                         content: result.context,
@@ -240,7 +242,7 @@ class ResultScreen extends ConsumerWidget {
                       // 3.5. Order Phrase Card
                       if (result.orderPhraseJapanese.isNotEmpty) ...[
                         _BuildResultCard(
-                          title: '현지 주문 예문',
+                          title: l10n.orderPhraseTitle,
                           icon: Icons.chat_bubble_outline_rounded,
                           iconColor: Colors.deepPurple,
                           action: IconButton(
@@ -275,7 +277,7 @@ class ResultScreen extends ConsumerWidget {
                               ),
                               const SizedBox(height: 6),
                               Text(
-                                '[발음] ${result.orderPhrasePronunciation}',
+                                '[${l10n.orderPhrasePronunciationLabel}] ${result.orderPhrasePronunciation}',
                                 style: theme.textTheme.bodyMedium?.copyWith(
                                   color: colorScheme.onSurface.withValues(
                                     alpha: 0.6,
@@ -286,7 +288,7 @@ class ResultScreen extends ConsumerWidget {
                               ),
                               const SizedBox(height: 10),
                               Text(
-                                '뜻: ${result.orderPhraseTranslation}',
+                                '${l10n.orderPhraseMeaningLabel}: ${result.orderPhraseTranslation}',
                                 style: theme.textTheme.bodyLarge?.copyWith(
                                   fontSize: 16,
                                 ),
@@ -299,7 +301,7 @@ class ResultScreen extends ConsumerWidget {
 
                       // 4. Practical Tip Card
                       _BuildResultCard(
-                        title: '현지 이용 꿀팁',
+                        title: l10n.tipsTitle,
                         icon: Icons.lightbulb_rounded,
                         iconColor: Colors.teal,
                         content: result.tip,
@@ -393,15 +395,16 @@ class _BuildResultCard extends StatelessWidget {
   }
 }
 
-class _BuildLoadingState extends StatelessWidget {
+class _BuildLoadingState extends ConsumerWidget {
   final String? imagePath;
 
   const _BuildLoadingState({this.imagePath});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final l10n = ref.watch(l10nProvider);
 
     return Stack(
       fit: StackFit.expand,
@@ -456,7 +459,7 @@ class _BuildLoadingState extends StatelessWidget {
               ),
               const SizedBox(height: 32),
               Text(
-                'Gemini AI 분석 중...',
+                l10n.analyzingText,
                 style: theme.textTheme.titleMedium?.copyWith(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
@@ -464,7 +467,7 @@ class _BuildLoadingState extends StatelessWidget {
               ),
               const SizedBox(height: 8),
               Text(
-                '세로쓰기와 손글씨를 판독하고 있습니다.\n잠시만 기다려 주세요.',
+                l10n.analyzingDesc,
                 textAlign: TextAlign.center,
                 style: theme.textTheme.bodyMedium,
               ),
@@ -476,16 +479,17 @@ class _BuildLoadingState extends StatelessWidget {
   }
 }
 
-class _BuildErrorState extends StatelessWidget {
+class _BuildErrorState extends ConsumerWidget {
   final String errorMessage;
   final VoidCallback onRetry;
 
   const _BuildErrorState({required this.errorMessage, required this.onRetry});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final l10n = ref.watch(l10nProvider);
 
     // Clean up generic exception prefixes
     final cleanMessage = errorMessage.replaceAll('Exception:', '').trim();
@@ -503,7 +507,7 @@ class _BuildErrorState extends StatelessWidget {
             ),
             const SizedBox(height: 24),
             Text(
-              '분석 중 오류 발생',
+              l10n.errorAnalyzing,
               style: theme.textTheme.titleMedium?.copyWith(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
@@ -521,7 +525,7 @@ class _BuildErrorState extends StatelessWidget {
             ElevatedButton.icon(
               onPressed: onRetry,
               icon: const Icon(Icons.refresh_rounded),
-              label: const Text('다시 시도'),
+              label: Text(l10n.retryBtn),
               style: ElevatedButton.styleFrom(
                 backgroundColor: colorScheme.primary,
                 foregroundColor: colorScheme.onPrimary,
@@ -562,6 +566,7 @@ void _showFavoritesBottomSheet(
           final favoritesNotifier = ref.read(favoritesProvider.notifier);
           final theme = Theme.of(context);
           final colorScheme = theme.colorScheme;
+          final l10n = ref.watch(l10nProvider);
 
           return Container(
             decoration: BoxDecoration(
@@ -582,7 +587,7 @@ void _showFavoritesBottomSheet(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      '즐겨찾기 폴더 선택',
+                      l10n.selectFavFolderTitle,
                       style: theme.textTheme.titleLarge?.copyWith(
                         fontWeight: FontWeight.bold,
                       ),
@@ -626,7 +631,7 @@ void _showFavoritesBottomSheet(
                     _showCreateFolderDialog(context, ref);
                   },
                   icon: const Icon(Icons.create_new_folder_outlined),
-                  label: const Text('새 폴더 추가'),
+                  label: Text(l10n.addNewFolderBtn),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: colorScheme.primary,
                     foregroundColor: colorScheme.onPrimary,
@@ -650,6 +655,7 @@ void _showCreateFolderDialog(BuildContext context, WidgetRef ref) {
   final nameController = TextEditingController();
   final emojis = ['🍱', '🍜', '🍣', '🚇', '🛍️', '📌', '💡', '🗺️', '⚠️', '🇯🇵', '⭐', '📍'];
   String selectedEmoji = emojis.first;
+  final l10n = ref.read(l10nProvider);
 
   showDialog(
     context: context,
@@ -661,7 +667,7 @@ void _showCreateFolderDialog(BuildContext context, WidgetRef ref) {
 
           return AlertDialog(
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-            title: const Text('새 즐겨찾기 폴더'),
+            title: Text(l10n.newFavFolderTitle),
             content: SingleChildScrollView(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -669,15 +675,15 @@ void _showCreateFolderDialog(BuildContext context, WidgetRef ref) {
                 children: [
                   TextField(
                     controller: nameController,
-                    decoration: const InputDecoration(
-                      labelText: '폴더 이름',
-                      hintText: '예: 맛집 탐방, 교통 수단',
-                      border: OutlineInputBorder(),
+                    decoration: InputDecoration(
+                      labelText: l10n.folderNameLabel,
+                      hintText: l10n.folderHintText,
+                      border: const OutlineInputBorder(),
                     ),
                   ),
                   const SizedBox(height: 20),
                   Text(
-                    '아이콘 이모지 선택',
+                    l10n.emojiSelectionLabel,
                     style: theme.textTheme.bodyMedium?.copyWith(
                       fontWeight: FontWeight.bold,
                       color: colorScheme.onSurface.withValues(alpha: 0.6),
@@ -728,7 +734,7 @@ void _showCreateFolderDialog(BuildContext context, WidgetRef ref) {
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context),
-                child: const Text('취소'),
+                child: Text(l10n.cancelBtn),
               ),
               TextButton(
                 onPressed: () {
@@ -738,7 +744,7 @@ void _showCreateFolderDialog(BuildContext context, WidgetRef ref) {
                     Navigator.pop(context);
                   }
                 },
-                child: const Text('만들기'),
+                child: Text(l10n.createBtn),
               ),
             ],
           );

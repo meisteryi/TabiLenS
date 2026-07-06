@@ -48,3 +48,51 @@ class LanguageNotifier extends StateNotifier<LanguageMode> {
 final languageProvider = StateNotifierProvider<LanguageNotifier, LanguageMode>((ref) {
   return LanguageNotifier(ref);
 });
+
+enum UserLanguage {
+  korean(name: '한국어', englishName: 'Korean'),
+  english(name: '영어', englishName: 'English'),
+  japanese(name: '일본어', englishName: 'Japanese'),
+  chinese(name: '중국어', englishName: 'Chinese'),
+  spanish(name: '스페인어', englishName: 'Spanish'),
+  french(name: '프랑스어', englishName: 'French');
+
+  final String name;
+  final String englishName;
+
+  const UserLanguage({
+    required this.name,
+    required this.englishName,
+  });
+}
+
+class UserLanguageNotifier extends StateNotifier<UserLanguage> {
+  final Ref ref;
+
+  UserLanguageNotifier(this.ref) : super(UserLanguage.korean) {
+    _loadUserLanguage();
+  }
+
+  void _loadUserLanguage() {
+    try {
+      final prefs = ref.read(sharedPreferencesProvider);
+      final langName = prefs.getString('user_language');
+      if (langName != null) {
+        state = UserLanguage.values.firstWhere((e) => e.name == langName);
+      }
+    } catch (_) {}
+  }
+
+  void setUserLanguage(UserLanguage mode) {
+    state = mode;
+    try {
+      final prefs = ref.read(sharedPreferencesProvider);
+      prefs.setString('user_language', mode.name);
+    } catch (_) {}
+  }
+}
+
+final userLanguageProvider = StateNotifierProvider<UserLanguageNotifier, UserLanguage>((ref) {
+  return UserLanguageNotifier(ref);
+});
+

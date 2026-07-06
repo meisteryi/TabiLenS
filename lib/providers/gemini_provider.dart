@@ -25,7 +25,12 @@ class GeminiNotifier extends AsyncNotifier<TranslationResult?> {
     state = await AsyncValue.guard(() async {
       final service = ref.read(geminiServiceProvider);
       final activeLang = ref.read(languageProvider);
-      final result = await service.analyzeSelectedText(selectedText, sourceLanguage: activeLang.name);
+      final userLang = ref.read(userLanguageProvider);
+      final result = await service.analyzeSelectedText(
+        selectedText,
+        sourceLanguage: activeLang.name,
+        targetLanguage: userLang.name,
+      );
       
       // Save to scan history
       ref.read(historyProvider.notifier).addHistory(image, result);

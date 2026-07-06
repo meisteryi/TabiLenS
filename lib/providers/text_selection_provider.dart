@@ -68,12 +68,14 @@ class TextSelectionNotifier extends Notifier<TextSelectionState> {
 
     final geminiService = ref.read(geminiServiceProvider);
     final activeLang = ref.read(languageProvider);
+    final userLang = ref.read(userLanguageProvider);
     
     final blocksState = await AsyncValue.guard(() async {
       final bytes = await image.readAsBytes();
       return await geminiService.detectTextBlocks(
         bytes,
         sourceLanguage: activeLang.name,
+        targetLanguage: userLang.name,
         onStatusChanged: (status) {
           state = state.copyWith(loadingStatus: status);
         },

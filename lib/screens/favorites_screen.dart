@@ -7,6 +7,7 @@ import '../providers/image_provider.dart';
 import '../providers/gemini_provider.dart';
 import 'package:flutter/foundation.dart';
 import 'result_screen.dart';
+import '../core/localization/app_strings.dart';
 
 class FavoritesScreen extends ConsumerWidget {
   const FavoritesScreen({super.key});
@@ -16,10 +17,11 @@ class FavoritesScreen extends ConsumerWidget {
     final folders = ref.watch(favoritesProvider);
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final l10n = ref.watch(l10nProvider);
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('즐겨찾기'),
+        title: Text(l10n.favoritesTitle),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new_rounded),
           onPressed: () => Navigator.pop(context),
@@ -44,7 +46,7 @@ class FavoritesScreen extends ConsumerWidget {
                   ),
                   const SizedBox(height: 24),
                   Text(
-                    '즐겨찾기가 비어 있습니다.',
+                    l10n.emptyFavoritesTitle,
                     style: theme.textTheme.titleMedium?.copyWith(
                       color: colorScheme.onSurface.withValues(alpha: 0.6),
                       fontWeight: FontWeight.bold,
@@ -52,7 +54,7 @@ class FavoritesScreen extends ConsumerWidget {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    '일본어 분석 결과에서 별표(★)를 눌러\n폴더별로 번역 단어들을 모아보세요!',
+                    l10n.emptyFavoritesDesc,
                     textAlign: TextAlign.center,
                     style: theme.textTheme.bodyMedium,
                   ),
@@ -90,7 +92,7 @@ class FavoritesScreen extends ConsumerWidget {
                       ),
                     ),
                     subtitle: Text(
-                      '항목 ${folder.items.length}개',
+                      l10n.itemsCount(folder.items.length),
                       style: theme.textTheme.bodyMedium?.copyWith(
                         color: colorScheme.onSurface.withValues(alpha: 0.4),
                       ),
@@ -99,10 +101,10 @@ class FavoritesScreen extends ConsumerWidget {
                     childrenPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                     children: folder.items.isEmpty
                         ? [
-                            const Padding(
-                              padding: EdgeInsets.all(16.0),
+                            Padding(
+                              padding: const EdgeInsets.all(16.0),
                               child: Center(
-                                child: Text('이 폴더에 저장된 항목이 없습니다.'),
+                                child: Text(l10n.emptyFolderDesc),
                               ),
                             )
                           ]
@@ -127,7 +129,7 @@ class FavoritesScreen extends ConsumerWidget {
                                 ref.read(favoritesProvider.notifier).removeFromFolder(folder.id, item.id);
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(
-                                    content: Text('${folder.name}에서 삭제되었습니다.'),
+                                    content: Text(l10n.removedFromFolder(folder.name)),
                                     duration: const Duration(seconds: 2),
                                   ),
                                 );

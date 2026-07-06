@@ -7,6 +7,7 @@ import 'text_selection_screen.dart';
 import '../providers/text_selection_provider.dart';
 import '../providers/language_provider.dart';
 import '../providers/shared_preferences_provider.dart';
+import '../core/localization/app_strings.dart';
 
 import 'favorites_screen.dart';
 
@@ -19,6 +20,13 @@ class HomeScreen extends ConsumerStatefulWidget {
 
 class _HomeScreenState extends ConsumerState<HomeScreen> {
   bool _animationStarted = false;
+  bool _isUserLanguageSetup = false;
+  UserLanguage? _selectedUserLanguage;
+  bool _isUserLangDropdownOpen = false;
+  final LayerLink _userLangLayerLink = LayerLink();
+  OverlayEntry? _userLangDropdownOverlay;
+  double _userLangDropdownHeight = 0;
+
   bool _isInitialSetup = false;
   LanguageMode? _selectedSetupLanguage;
   bool _isSetupDropdownOpen = false;
@@ -36,8 +44,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     super.initState();
     try {
       final prefs = ref.read(sharedPreferencesProvider);
+      final hasUserLang = prefs.getString('user_language') != null;
       final hasSetup = prefs.getBool('has_completed_language_setup') ?? false;
-      if (!hasSetup) {
+      if (!hasUserLang) {
+        _isUserLanguageSetup = true;
+        _selectedUserLanguage = UserLanguage.korean;
+      } else if (!hasSetup) {
         _isInitialSetup = true;
         _selectedSetupLanguage = LanguageMode.japanese;
       } else {
@@ -54,6 +66,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       debugPrint('Error in initState: $e\n$stack');
       // Fallback: Default to completed setup state to prevent screen lockup
       _isInitialSetup = false;
+      _isUserLanguageSetup = false;
       Future.delayed(const Duration(milliseconds: 500), () {
         if (mounted) {
           setState(() {
@@ -66,6 +79,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   @override
   void dispose() {
+    _closeUserLangDropdown();
     _closeSetupDropdown();
     _closeMainDropdown();
     super.dispose();
@@ -209,6 +223,146 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       if (_setupDropdownOverlay != null && !_isSetupDropdownOpen) {
         _setupDropdownOverlay!.remove();
         _setupDropdownOverlay = null;
+      }
+    });
+  }
+
+  void _openUserLangDropdown() {
+    if (_userLangDropdownOverlay != null) return;
+    
+    setState(() {
+      _isUserLangDropdownOpen = true;
+      _userLangDropdownHeight = 0;
+    });
+
+    _userLangDropdownOverlay = OverlayEntry(
+      builder: (context) {
+        final theme = Theme.of(context);
+        final colorScheme = theme.colorScheme;
+        final screenWidth = MediaQuery.of(context).size.width;
+
+        return Stack(
+          children: [
+            Positioned.fill(
+              child: GestureDetector(
+                behavior: HitTestBehavior.translucent,
+                onTap: _closeUserLangDropdown,
+                child: Container(color: Colors.transparent),
+              ),
+            ),
+            CompositedTransformFollower(
+              link: _userLangLayerLink,
+              showWhenUnlinked: false,
+              offset: const Offset(0, 58),
+              child: Align(
+                alignment: Alignment.topLeft,
+                widthFactor: 1.0,
+                heightFactor: 1.0,
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 250),
+                  curve: Curves.easeInOut,
+                  width: screenWidth - 48,
+                  height: _userLangDropdownHeight,
+                  decoration: BoxDecoration(
+                    color: colorScheme.surface.withValues(alpha: 0.5),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: colorScheme.primary.withValues(alpha: 0.3),
+                      width: 1.5,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.1),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(16),
+                    child: SingleChildScrollView(
+                      physics: const BouncingScrollPhysics(),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: UserLanguage.values.map((mode) {
+                          final isSelected = _selectedUserLanguage == mode;
+                          return Material(
+                            color: Colors.transparent,
+                            child: InkWell(
+                              onTap: () {
+                                setState(() {
+                                  _selectedUserLanguage = mode;
+                                });
+                                _closeUserLangDropdown();
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 14,
+                                ),
+                                color: isSelected
+                                    ? colorScheme.primary.withValues(alpha: 0.15)
+                                    : null,
+                                child: Row(
+                                  children: [
+                                    Container(
+                                      width: 12,
+                                      height: 12,
+                                      decoration: BoxDecoration(
+                                        color: colorScheme.primary,
+                                        shape: BoxShape.circle,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Text(
+                                      '${mode.name} (${mode.englishName})',
+                                      style: theme.textTheme.titleMedium?.copyWith(
+                                        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                                        color: colorScheme.onSurface,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+
+    Overlay.of(context).insert(_userLangDropdownOverlay!);
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_userLangDropdownOverlay != null) {
+        setState(() {
+          _userLangDropdownHeight = 240;
+        });
+        _userLangDropdownOverlay!.markNeedsBuild();
+      }
+    });
+  }
+
+  void _closeUserLangDropdown() {
+    if (_userLangDropdownOverlay == null) return;
+
+    setState(() {
+      _isUserLangDropdownOpen = false;
+      _userLangDropdownHeight = 0;
+    });
+    _userLangDropdownOverlay!.markNeedsBuild();
+
+    Future.delayed(const Duration(milliseconds: 250), () {
+      if (_userLangDropdownOverlay != null && !_isUserLangDropdownOpen) {
+        _userLangDropdownOverlay!.remove();
+        _userLangDropdownOverlay = null;
       }
     });
   }
@@ -422,9 +576,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     ColorScheme colorScheme,
     bool isInitialSetup,
   ) {
+    final l10n = ref.watch(l10nProvider);
+    final setupL10n = _isUserLanguageSetup && _selectedUserLanguage != null
+        ? AppStrings(_selectedUserLanguage!)
+        : l10n;
+
     final subtitleText = isInitialSetup
-        ? '어느 나라를 여행하고 있나요?'
-        : _getLanguageSubtitle(lang);
+        ? setupL10n.chooseTravelCountry
+        : l10n.languageSubtitle(lang);
 
     switch (lang) {
       case LanguageMode.french:
@@ -480,27 +639,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     }
   }
 
-  String _getLanguageSubtitle(LanguageMode lang) {
-    switch (lang) {
-      case LanguageMode.french:
-        return '프랑스어 현지 메뉴판이 읽기 힘드신가요?\n음식의 이름과 꿀팁을 읽어보세요.';
-      case LanguageMode.spanish:
-        return '스페인어 현지 메뉴판이 읽기 힘드신가요?\n음식의 이름과 꿀팁을 읽어보세요.';
-      case LanguageMode.english:
-        return '영어 현지 메뉴판이 읽기 힘드신가요?\n음식의 이름과 꿀팁을 읽어보세요.';
-      case LanguageMode.japanese:
-        return '일본어 현지 메뉴판이 읽기 힘드신가요?\n음식의 이름과 꿀팁을 읽어보세요.';
-      case LanguageMode.chinese:
-        return '중국어 현지 메뉴판이 읽기 힘드신가요?\n음식의 이름과 꿀팁을 읽어보세요.';
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final l10n = ref.watch(l10nProvider);
+    final setupL10n = _isUserLanguageSetup && _selectedUserLanguage != null
+        ? AppStrings(_selectedUserLanguage!)
+        : l10n;
 
-    final activeLang = _isInitialSetup
+    final activeLang = (_isInitialSetup || _isUserLanguageSetup)
         ? (_selectedSetupLanguage ?? LanguageMode.japanese)
         : ref.watch(languageProvider);
     final activeColor = _getLanguageColor(activeLang, colorScheme);
@@ -513,16 +662,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         centerTitle: false,
         leadingWidth: 200,
         leading: IgnorePointer(
-          ignoring: _isInitialSetup || !_animationStarted,
+          ignoring: _isInitialSetup || _isUserLanguageSetup || !_animationStarted,
           child: AnimatedOpacity(
-            opacity: _animationStarted && !_isInitialSetup ? 1.0 : 0.0,
+            opacity: _animationStarted && !_isInitialSetup && !_isUserLanguageSetup ? 1.0 : 0.0,
             duration: const Duration(milliseconds: 800),
             child: Row(
               mainAxisSize: MainAxisSize.min,
             children: [
               IconButton(
                 icon: const Icon(Icons.star_border_rounded),
-                tooltip: '즐겨찾기',
+                tooltip: l10n.favoritesTitle,
                 onPressed: () {
                   Navigator.of(context).push(
                     MaterialPageRoute(
@@ -604,22 +753,25 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         ),
                 actions: [
           IgnorePointer(
-            ignoring: _isInitialSetup || !_animationStarted,
+            ignoring: _isInitialSetup || _isUserLanguageSetup || !_animationStarted,
             child: AnimatedOpacity(
-              opacity: _animationStarted && !_isInitialSetup ? 1.0 : 0.0,
+              opacity: _animationStarted && !_isInitialSetup && !_isUserLanguageSetup ? 1.0 : 0.0,
               duration: const Duration(milliseconds: 800),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   IconButton(
                     icon: const Icon(Icons.refresh_rounded),
-                    tooltip: '초기 설정으로 돌아가기 (개발용)',
+                    tooltip: l10n.resetSetup,
                     onPressed: () async {
                       final prefs = ref.read(sharedPreferencesProvider);
                       await prefs.remove('has_completed_language_setup');
+                      await prefs.remove('user_language');
                       setState(() {
-                        _isInitialSetup = true;
-                        _selectedSetupLanguage = LanguageMode.japanese;
+                        _isUserLanguageSetup = true;
+                        _selectedUserLanguage = UserLanguage.korean;
+                        _isInitialSetup = false;
+                        _selectedSetupLanguage = null;
                         _animationStarted = false;
                         _isMainDropdownOpen = false;
                         _isSetupDropdownOpen = false;
@@ -629,7 +781,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   const SizedBox(width: 4),
                   IconButton(
                     icon: const Icon(Icons.history_rounded),
-                    tooltip: '번역 기록',
+                    tooltip: l10n.historyTitle,
                     onPressed: () {
                       Navigator.of(context).push(
                         MaterialPageRoute(
@@ -661,7 +813,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             children: [
               // 1. Splash / Logo Header (starts centered, slides up to top)
               AnimatedAlign(
-                alignment: _animationStarted && !_isInitialSetup
+                alignment: _animationStarted && !_isInitialSetup && !_isUserLanguageSetup
                     ? const Alignment(0, -0.45)
                     : Alignment.center,
                 duration: const Duration(milliseconds: 1000),
@@ -672,7 +824,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       SizedBox(
-                        height: 160,
+                        height: 220,
                         child: AnimatedSwitcher(
                           duration: const Duration(milliseconds: 500),
                           transitionBuilder: (child, animation) {
@@ -695,14 +847,24 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                           },
                           child: KeyedSubtree(
                             key: ValueKey(
-                              '${activeLang.name}_$_isInitialSetup',
+                              '${activeLang.name}_${_isInitialSetup}_$_isUserLanguageSetup',
                             ),
-                            child: _buildLogoPageForLanguage(
-                              activeLang,
-                              theme,
-                              colorScheme,
-                              _isInitialSetup,
-                            ),
+                            child: _isUserLanguageSetup
+                                ? _buildLogoPage(
+                                    theme: theme,
+                                    color: colorScheme.primary,
+                                    title: 'TabiLenS',
+                                    subtitle: setupL10n.chooseNativeLanguage,
+                                    topLeftChar: 'A',
+                                    bottomRightChar: 'あ',
+                                    isInitialSetup: true,
+                                  )
+                                : _buildLogoPageForLanguage(
+                                    activeLang,
+                                    theme,
+                                    colorScheme,
+                                    _isInitialSetup,
+                                  ),
                           ),
                         ),
                       ),
@@ -715,10 +877,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               Align(
                 alignment: const Alignment(0, 0.65),
                 child: AnimatedOpacity(
-                  opacity: _isInitialSetup ? 1.0 : 0.0,
+                  opacity: (_isInitialSetup || _isUserLanguageSetup) ? 1.0 : 0.0,
                   duration: const Duration(milliseconds: 600),
                   child: AnimatedSlide(
-                    offset: _isInitialSetup
+                    offset: (_isInitialSetup || _isUserLanguageSetup)
                         ? Offset.zero
                         : const Offset(0, 0.15),
                     duration: const Duration(milliseconds: 600),
@@ -732,7 +894,111 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         mainAxisSize: MainAxisSize.min,
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          if (_isInitialSetup) ...[
+                          if (_isUserLanguageSetup) ...[
+                            // User Language Dropdown for Initial Setup
+                            CompositedTransformTarget(
+                              link: _userLangLayerLink,
+                              child: GestureDetector(
+                                onTap: () {
+                                  if (_isUserLangDropdownOpen) {
+                                    _closeUserLangDropdown();
+                                  } else {
+                                    _openUserLangDropdown();
+                                  }
+                                },
+                                child: Container(
+                                  width: double.infinity,
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                    vertical: 16,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: colorScheme.surface.withValues(
+                                      alpha: 0.5,
+                                    ),
+                                    borderRadius: BorderRadius.circular(16),
+                                    border: Border.all(
+                                      color: colorScheme.primary.withValues(alpha: 0.3),
+                                      width: 1.5,
+                                    ),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withValues(alpha: 0.05),
+                                        blurRadius: 10,
+                                        offset: const Offset(0, 4),
+                                      ),
+                                    ],
+                                  ),
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Row(
+                                        children: [
+                                          Container(
+                                            width: 12,
+                                            height: 12,
+                                            decoration: BoxDecoration(
+                                              color: colorScheme.primary,
+                                              shape: BoxShape.circle,
+                                            ),
+                                          ),
+                                          const SizedBox(width: 12),
+                                          Text(
+                                            '${_selectedUserLanguage?.name ?? '한국어'} (${_selectedUserLanguage?.englishName ?? 'Korean'})',
+                                            style: theme.textTheme.titleMedium?.copyWith(
+                                              fontWeight: FontWeight.bold,
+                                              color: colorScheme.onSurface,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      AnimatedRotation(
+                                        turns: _isUserLangDropdownOpen ? 0.5 : 0.0,
+                                        duration: const Duration(milliseconds: 300),
+                                        child: Icon(
+                                          Icons.keyboard_arrow_down_rounded,
+                                          color: colorScheme.primary,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 24),
+                            // Confirm Button for User Language
+                            Center(
+                              child: SizedBox(
+                                width: 56,
+                                height: 56,
+                                child: ElevatedButton(
+                                  onPressed: () {
+                                    if (_selectedUserLanguage != null) {
+                                      ref
+                                          .read(userLanguageProvider.notifier)
+                                          .setUserLanguage(_selectedUserLanguage!);
+                                      setState(() {
+                                        _isUserLanguageSetup = false;
+                                        _isInitialSetup = true;
+                                        _selectedSetupLanguage = LanguageMode.japanese;
+                                      });
+                                    }
+                                  },
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: colorScheme.primary,
+                                    foregroundColor: Colors.white,
+                                    elevation: 2,
+                                    shape: const CircleBorder(),
+                                    padding: EdgeInsets.zero,
+                                  ),
+                                  child: const Icon(
+                                    Icons.check_rounded,
+                                    size: 28,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ] else if (_isInitialSetup) ...[
                             // Language Dropdown for Initial Setup
                             CompositedTransformTarget(
                               link: _layerLink,
@@ -866,14 +1132,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
               // 2. Action Buttons & Version Text (fade in & slide up from bottom)
               IgnorePointer(
-                ignoring: _isInitialSetup || !_animationStarted,
+                ignoring: _isInitialSetup || _isUserLanguageSetup || !_animationStarted,
                 child: Align(
                   alignment: Alignment.bottomCenter,
                   child: AnimatedOpacity(
-                    opacity: _animationStarted && !_isInitialSetup ? 1.0 : 0.0,
+                    opacity: _animationStarted && !_isInitialSetup && !_isUserLanguageSetup ? 1.0 : 0.0,
                     duration: const Duration(milliseconds: 800),
                     child: AnimatedSlide(
-                      offset: _animationStarted && !_isInitialSetup
+                      offset: _animationStarted && !_isInitialSetup && !_isUserLanguageSetup
                           ? Offset.zero
                           : const Offset(0, 0.15),
                       duration: const Duration(milliseconds: 800),
@@ -889,8 +1155,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                           children: [
                             _BuildActionButton(
                               icon: Icons.camera_alt_rounded,
-                              label: '카메라로 촬영하기',
-                              subtitle: '${activeLang.name} 메뉴를 촬영해 주세요',
+                              label: l10n.cameraActionTitle,
+                              subtitle: l10n.cameraActionSubtitle(activeLang),
                               color: activeColor,
                               onTap: () => _handleImageSelection(
                                 context,
@@ -900,8 +1166,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                             const SizedBox(height: 16),
                             _BuildActionButton(
                               icon: Icons.photo_library_rounded,
-                              label: '갤러리에서 선택하기',
-                              subtitle: '저장된 이미지에서 번역!',
+                              label: l10n.galleryActionTitle,
+                              subtitle: l10n.galleryActionSubtitle,
                               color: activeColor.withValues(alpha: 0.8),
                               onTap: () => _handleImageSelection(
                                 context,
@@ -911,7 +1177,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                             const SizedBox(height: 20),
                             Center(
                               child: Text(
-                                'Gemini 기반 텍스트 인식 및 번역',
+                                l10n.geminiPoweredFooter,
                                 style: theme.textTheme.bodyMedium?.copyWith(
                                   fontSize: 11,
                                   color: colorScheme.onSurface.withValues(
@@ -1057,23 +1323,21 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           ),
         ),
         const SizedBox(height: 4),
-        SizedBox(
-          height: 40,
-          child: Center(
-            child: Text(
-              subtitle,
-              textAlign: TextAlign.center,
-              style: isInitialSetup
-                  ? theme.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 18,
-                      color: theme.colorScheme.onSurface,
-                    )
-                  : theme.textTheme.bodyMedium?.copyWith(
-                      color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
-                      height: 1.3,
-                    ),
-            ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Text(
+            subtitle,
+            textAlign: TextAlign.center,
+            style: isInitialSetup
+                ? theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 18,
+                    color: theme.colorScheme.onSurface,
+                  )
+                : theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+                    height: 1.3,
+                  ),
           ),
         ),
       ],

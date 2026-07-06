@@ -7,6 +7,7 @@ import '../providers/gemini_provider.dart';
 import 'package:flutter/foundation.dart';
 import '../providers/language_provider.dart';
 import 'result_screen.dart';
+import '../core/localization/app_strings.dart';
 
 class TextSelectionScreen extends ConsumerStatefulWidget {
   const TextSelectionScreen({super.key});
@@ -68,14 +69,15 @@ class _TextSelectionScreenState extends ConsumerState<TextSelectionScreen> {
     final activeLang = ref.watch(languageProvider);
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final l10n = ref.watch(l10nProvider);
 
     if (imageFile == null) {
-      return const Scaffold(body: Center(child: Text('선택된 사진이 없습니다.')));
+      return Scaffold(body: Center(child: Text(l10n.noPhotoSelected)));
     }
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('텍스트 선택'),
+        title: Text(l10n.textSelectionTitle),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_new_rounded),
           onPressed: () {
@@ -113,7 +115,7 @@ class _TextSelectionScreenState extends ConsumerState<TextSelectionScreen> {
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        '사진 속 번역을 원하는 ${activeLang.name} 박스를 터치해 선택하세요.',
+                        l10n.textSelectionInstruction(activeLang.name),
                         style: theme.textTheme.bodyMedium?.copyWith(
                           color: colorScheme.primary,
                           fontWeight: FontWeight.w600,
@@ -366,7 +368,7 @@ class _TextSelectionScreenState extends ConsumerState<TextSelectionScreen> {
                     children: [
                       if (selectionState.selectedBlocks.isNotEmpty) ...[
                         Text(
-                          '선택된 텍스트',
+                          l10n.selectedTextLabel,
                           style: theme.textTheme.bodyMedium?.copyWith(
                             color: colorScheme.onSurface.withValues(alpha: 0.5),
                           ),
@@ -395,9 +397,9 @@ class _TextSelectionScreenState extends ConsumerState<TextSelectionScreen> {
                             ),
                             elevation: 0,
                           ),
-                          child: const Text(
-                            '선택한 텍스트 해설 및 가이드 보기',
-                            style: TextStyle(
+                          child: Text(
+                            l10n.viewGuideBtn,
+                            style: const TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
                             ),
@@ -419,7 +421,7 @@ class _TextSelectionScreenState extends ConsumerState<TextSelectionScreen> {
                           ),
                           child: Center(
                             child: Text(
-                              '${activeLang.name} 박스를 선택해 주세요.',
+                              l10n.pleaseSelectBox(activeLang.name),
                               style: theme.textTheme.bodyLarge?.copyWith(
                                 color: colorScheme.onSurface.withValues(
                                   alpha: 0.4,
@@ -453,10 +455,12 @@ class _BuildDetectionLoadingState extends ConsumerWidget {
     final activeLang = ref.watch(languageProvider);
     final selectionState = ref.watch(textSelectionProvider);
 
-    String statusTitle = '${activeLang.name} 텍스트 감지 중...';
+    final l10n = ref.watch(l10nProvider);
+
+    String statusTitle = l10n.detectingText(activeLang.name);
     String statusDesc = selectionState.loadingStatus.isNotEmpty
         ? selectionState.loadingStatus
-        : 'AI가 사진 속 글씨 영역들을 찾고 있습니다.\n잠시만 기다려 주세요.';
+        : l10n.detectionWaitDesc;
 
     return Stack(
       fit: StackFit.expand,
@@ -507,16 +511,17 @@ class _BuildDetectionLoadingState extends ConsumerWidget {
   }
 }
 
-class _BuildErrorState extends StatelessWidget {
+class _BuildErrorState extends ConsumerWidget {
   final String errorMessage;
   final VoidCallback onRetry;
 
   const _BuildErrorState({required this.errorMessage, required this.onRetry});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
+    final l10n = ref.watch(l10nProvider);
     final cleanMessage = errorMessage.replaceAll('Exception:', '').trim();
 
     return Padding(
@@ -532,7 +537,7 @@ class _BuildErrorState extends StatelessWidget {
             ),
             const SizedBox(height: 20),
             Text(
-              '텍스트 인식 오류',
+              l10n.textDetectionError,
               style: theme.textTheme.titleMedium?.copyWith(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
@@ -550,7 +555,7 @@ class _BuildErrorState extends StatelessWidget {
             ElevatedButton.icon(
               onPressed: onRetry,
               icon: const Icon(Icons.refresh_rounded),
-              label: const Text('다시 시도'),
+              label: Text(l10n.retryBtn),
               style: ElevatedButton.styleFrom(
                 backgroundColor: colorScheme.primary,
                 foregroundColor: colorScheme.onPrimary,
