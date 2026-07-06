@@ -7,7 +7,7 @@ import 'text_selection_screen.dart';
 import '../providers/text_selection_provider.dart';
 import '../providers/language_provider.dart';
 import '../providers/shared_preferences_provider.dart';
-import '../providers/detection_mode_provider.dart';
+
 import 'favorites_screen.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
@@ -628,12 +628,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   ),
                   const SizedBox(width: 4),
                   IconButton(
-                    icon: const Icon(Icons.settings_rounded),
-                    tooltip: '설정',
-                    onPressed: () => _showSettingsBottomSheet(context),
-                  ),
-                  const SizedBox(width: 4),
-                  IconButton(
                     icon: const Icon(Icons.history_rounded),
                     tooltip: '번역 기록',
                     onPressed: () {
@@ -1083,155 +1077,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           ),
         ),
       ],
-    );
-  }
-
-  void _showSettingsBottomSheet(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder: (context) {
-        return Consumer(
-          builder: (context, ref, child) {
-            final detectionMode = ref.watch(detectionModeProvider);
-            final theme = Theme.of(context);
-            final colorScheme = theme.colorScheme;
-
-            return Container(
-              decoration: BoxDecoration(
-                color: colorScheme.surface,
-                borderRadius: const BorderRadius.only(
-                  topLeft: Radius.circular(24),
-                  topRight: Radius.circular(24),
-                ),
-              ),
-              padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Center(
-                    child: Container(
-                      width: 40,
-                      height: 4,
-                      decoration: BoxDecoration(
-                        color: colorScheme.onSurface.withValues(alpha: 0.2),
-                        borderRadius: BorderRadius.circular(2),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  Text(
-                    '텍스트 인식 설정',
-                    style: theme.textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    '메뉴판 이미지에서 텍스트를 감지할 방식을 설정하세요.',
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: colorScheme.onSurface.withValues(alpha: 0.6),
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  _buildSettingsOption(
-                    context: context,
-                    ref: ref,
-                    title: '스마트폰 내부 모델 (On-Device)',
-                    subtitle: '오프라인 지원, 실시간 속도, 데이터 무료',
-                    icon: Icons.phonelink_setup_rounded,
-                    mode: DetectionMode.onDevice,
-                    currentMode: detectionMode,
-                  ),
-                  const SizedBox(height: 12),
-                  _buildSettingsOption(
-                    context: context,
-                    ref: ref,
-                    title: '클라우드 인공지능 (Gemini AI)',
-                    subtitle: '고정밀 텍스트 감지, 기울어진 메뉴판 강함',
-                    icon: Icons.cloud_done_rounded,
-                    mode: DetectionMode.cloudAi,
-                    currentMode: detectionMode,
-                  ),
-                ],
-              ),
-            );
-          },
-        );
-      },
-    );
-  }
-
-  Widget _buildSettingsOption({
-    required BuildContext context,
-    required WidgetRef ref,
-    required String title,
-    required String subtitle,
-    required IconData icon,
-    required DetectionMode mode,
-    required DetectionMode currentMode,
-  }) {
-    final isSelected = mode == currentMode;
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
-    final activeColor = colorScheme.primary;
-
-    return InkWell(
-      onTap: () {
-        ref.read(detectionModeProvider.notifier).setDetectionMode(mode);
-        Navigator.pop(context);
-      },
-      borderRadius: BorderRadius.circular(16),
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: isSelected ? activeColor : colorScheme.outlineVariant,
-            width: isSelected ? 2 : 1,
-          ),
-          color: isSelected
-              ? activeColor.withValues(alpha: 0.05)
-              : Colors.transparent,
-        ),
-        child: Row(
-          children: [
-            Icon(
-              icon,
-              color: isSelected ? activeColor : colorScheme.onSurfaceVariant,
-              size: 28,
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: isSelected ? activeColor : colorScheme.onSurface,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    subtitle,
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: colorScheme.onSurface.withValues(alpha: 0.6),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            if (isSelected)
-              Icon(
-                Icons.check_circle_rounded,
-                color: activeColor,
-              ),
-          ],
-        ),
-      ),
     );
   }
 }

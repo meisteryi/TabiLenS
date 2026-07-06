@@ -178,7 +178,7 @@ class _TextSelectionScreenState extends ConsumerState<TextSelectionScreen> {
                                                   fit: BoxFit.fill,
                                                 ),
                                         ),
-
+  
                                         // Clickable boxes
                                         ...blocks.map((block) {
                                           // box2d: [ymin, xmin, ymax, xmax] (0 to 1000)
@@ -198,7 +198,7 @@ class _TextSelectionScreenState extends ConsumerState<TextSelectionScreen> {
                                               block.box2d[3] *
                                               renderedWidth /
                                               1000;
-
+  
                                           // Add a small rendering margin to prevent tight cropping or slight coordinate shifts
                                           final double boxWidth = xmax - xmin;
                                           final double boxHeight = ymax - ymin;
@@ -226,13 +226,15 @@ class _TextSelectionScreenState extends ConsumerState<TextSelectionScreen> {
                                                 maxWidth,
                                               );
                                           final double height =
-                                              (boxHeight + (paddingY * 2))
-                                                  .clamp(0.0, maxHeight);
-
+                                              (boxHeight + (paddingY * 2)).clamp(
+                                                0.0,
+                                                maxHeight,
+                                              );
+  
                                           final isSelected = selectionState
                                               .selectedBlocks
                                               .contains(block);
-
+  
                                           return Positioned(
                                             left: left,
                                             top: top,
@@ -263,63 +265,44 @@ class _TextSelectionScreenState extends ConsumerState<TextSelectionScreen> {
                                                   border: Border.all(
                                                     color: isSelected
                                                         ? colorScheme.primary
-                                                        : Colors.amber
-                                                              .withValues(
-                                                                alpha: 0.6,
-                                                              ),
-                                                    width: isSelected
-                                                        ? 2.5
-                                                        : 1.5,
+                                                        : Colors.amber.withValues(
+                                                            alpha: 0.6,
+                                                          ),
+                                                    width: isSelected ? 2.5 : 1.5,
                                                   ),
                                                   borderRadius:
                                                       BorderRadius.circular(4),
                                                 ),
-                                                child:
-                                                    block.translatedText !=
-                                                            null &&
-                                                        block
-                                                            .translatedText!
-                                                            .isNotEmpty
+                                                child: block.translatedText != null &&
+                                                        block.translatedText!.isNotEmpty
                                                     ? Center(
                                                         child: Padding(
-                                                          padding:
-                                                              const EdgeInsets.symmetric(
-                                                                horizontal: 2.0,
-                                                              ),
+                                                          padding: const EdgeInsets.symmetric(
+                                                            horizontal: 2.0,
+                                                          ),
                                                           child: FittedBox(
-                                                            fit: BoxFit
-                                                                .scaleDown,
+                                                            fit: BoxFit.scaleDown,
                                                             child: Container(
-                                                              padding:
-                                                                  const EdgeInsets.symmetric(
-                                                                    horizontal:
-                                                                        4,
-                                                                    vertical: 2,
-                                                                  ),
+                                                              padding: const EdgeInsets.symmetric(
+                                                                horizontal: 4,
+                                                                vertical: 2,
+                                                              ),
                                                               decoration: BoxDecoration(
-                                                                color:
-                                                                    (isSelected
-                                                                            ? colorScheme.primary
-                                                                            : Colors.black)
-                                                                        .withValues(
-                                                                          alpha:
-                                                                              0.65,
-                                                                        ),
+                                                                color: (isSelected
+                                                                        ? colorScheme.primary
+                                                                        : Colors.black)
+                                                                    .withValues(
+                                                                  alpha: 0.65,
+                                                                ),
                                                                 borderRadius:
-                                                                    BorderRadius.circular(
-                                                                      4,
-                                                                    ),
+                                                                    BorderRadius.circular(4),
                                                               ),
                                                               child: Text(
-                                                                block
-                                                                    .translatedText!,
+                                                                block.translatedText!,
                                                                 style: const TextStyle(
-                                                                  color: Colors
-                                                                      .white,
+                                                                  color: Colors.white,
                                                                   fontSize: 10,
-                                                                  fontWeight:
-                                                                      FontWeight
-                                                                          .bold,
+                                                                  fontWeight: FontWeight.bold,
                                                                 ),
                                                               ),
                                                             ),
