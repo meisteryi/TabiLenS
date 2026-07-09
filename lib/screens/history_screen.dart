@@ -180,7 +180,7 @@ class HistoryScreen extends ConsumerWidget {
                         
                         Navigator.of(context).push(
                           MaterialPageRoute(
-                            builder: (context) => const ResultScreen(),
+                            builder: (context) => const ResultScreen(popToFirst: false),
                           ),
                         );
                       },

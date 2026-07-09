@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import '../data/models/translation_result.dart';
@@ -12,7 +13,7 @@ final geminiServiceProvider = Provider<GeminiService>((ref) {
 
 class GeminiNotifier extends AsyncNotifier<TranslationResult?> {
   @override
-  Future<TranslationResult?> build() async {
+  FutureOr<TranslationResult?> build() {
     // Initial state is null (no translation performed yet)
     return null;
   }

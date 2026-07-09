@@ -11,7 +11,12 @@ import 'package:flutter/foundation.dart';
 import '../core/localization/app_strings.dart';
 
 class ResultScreen extends ConsumerWidget {
-  const ResultScreen({super.key});
+  final bool popToFirst;
+
+  const ResultScreen({
+    super.key,
+    this.popToFirst = true,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -31,7 +36,11 @@ class ResultScreen extends ConsumerWidget {
             ref.read(geminiNotifierProvider.notifier).reset();
             ref.read(textSelectionProvider.notifier).clear();
             ref.read(imageProvider.notifier).clear();
-            Navigator.of(context).popUntil((route) => route.isFirst);
+            if (popToFirst) {
+              Navigator.of(context).popUntil((route) => route.isFirst);
+            } else {
+              Navigator.of(context).pop();
+            }
           },
         ),
         actions: [
