@@ -1,6 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 
+import '../core/utils/image_utils.dart';
+
 final imagePickerProvider = Provider<ImagePicker>((ref) {
   return ImagePicker();
 });
@@ -16,11 +18,13 @@ class ImageNotifier extends Notifier<XFile?> {
     try {
       final XFile? pickedFile = await picker.pickImage(
         source: source,
-        imageQuality: 70,
-        maxWidth: 800,
-        maxHeight: 1000,
       );
-      state = pickedFile;
+      if (pickedFile != null) {
+        final correctedFile = await ImageUtils.fixImageRotationAndResize(pickedFile);
+        state = correctedFile;
+      } else {
+        state = null;
+      }
     } catch (e) {
       state = null;
       rethrow;
