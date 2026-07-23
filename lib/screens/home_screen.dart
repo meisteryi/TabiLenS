@@ -100,6 +100,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         final activeLang = _selectedSetupLanguage ?? LanguageMode.japanese;
         final activeColor = _getLanguageColor(activeLang, colorScheme);
         final screenWidth = MediaQuery.of(context).size.width;
+        final setupModes = LanguageMode.values.where(
+          (mode) => mode.englishName != _selectedUserLanguage?.englishName,
+        ).toList();
 
         return Stack(
           children: [
@@ -144,7 +147,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       physics: const BouncingScrollPhysics(),
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
-                        children: LanguageMode.values.map((mode) {
+                        children: setupModes.map((mode) {
                           final isSelected = _selectedSetupLanguage == mode;
                           return Material(
                             color: Colors.transparent,
@@ -202,8 +205,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_setupDropdownOverlay != null) {
+        final setupModesCount = LanguageMode.values.where(
+          (mode) => mode.englishName != _selectedUserLanguage?.englishName,
+        ).length;
         setState(() {
-          _setupDropdownHeight = 200;
+          _setupDropdownHeight = setupModesCount * 48.0;
         });
         _setupDropdownOverlay!.markNeedsBuild();
       }
@@ -309,7 +315,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                       width: 12,
                                       height: 12,
                                       decoration: BoxDecoration(
-                                        color: colorScheme.primary,
+                                        color: _getUserLanguageColor(mode, colorScheme),
                                         shape: BoxShape.circle,
                                       ),
                                     ),
@@ -369,7 +375,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   void _openMainDropdown() {
     if (_mainDropdownOverlay != null) return;
-    
+
     setState(() {
       _isMainDropdownOpen = true;
       _mainDropdownHeight = 0;
@@ -379,8 +385,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       builder: (context) {
         final theme = Theme.of(context);
         final colorScheme = theme.colorScheme;
-        final activeLang = ref.watch(languageProvider);
+        final activeLang = ref.read(languageProvider);
         final activeColor = _getLanguageColor(activeLang, colorScheme);
+        final userLang = ref.read(userLanguageProvider);
+        final filteredModes = LanguageMode.values.where(
+          (mode) => mode.englishName != userLang.englishName,
+        ).toList();
 
         return Stack(
           children: [
@@ -425,7 +435,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       physics: const BouncingScrollPhysics(),
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
-                        children: LanguageMode.values.map((mode) {
+                        children: filteredModes.map((mode) {
                           final isSelected = activeLang == mode;
                           return Material(
                             color: Colors.transparent,
@@ -485,8 +495,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_mainDropdownOverlay != null) {
+        final userLang = ref.read(userLanguageProvider);
+        final filteredCount = LanguageMode.values.where(
+          (mode) => mode.englishName != userLang.englishName,
+        ).length;
         setState(() {
-          _mainDropdownHeight = 200;
+          _mainDropdownHeight = filteredCount * 40.0;
         });
         _mainDropdownOverlay!.markNeedsBuild();
       }
@@ -552,6 +566,23 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         return colorScheme.primary;
       case LanguageMode.chinese:
         return const Color.fromARGB(255, 255, 40, 40);
+    }
+  }
+
+  static Color _getUserLanguageColor(UserLanguage lang, ColorScheme colorScheme) {
+    switch (lang) {
+      case UserLanguage.korean:
+        return const Color(0xFF009688); // Teal
+      case UserLanguage.english:
+        return Colors.blue.shade600; // Blue
+      case UserLanguage.japanese:
+        return colorScheme.primary; // Purple/Primary
+      case UserLanguage.chinese:
+        return const Color.fromARGB(255, 255, 40, 40); // Red
+      case UserLanguage.spanish:
+        return const Color(0xFFD48F00); // Amber
+      case UserLanguage.french:
+        return const Color(0xFFEC407A); // Pink
     }
   }
 
@@ -938,7 +969,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                             width: 12,
                                             height: 12,
                                             decoration: BoxDecoration(
-                                              color: colorScheme.primary,
+                                              color: _getUserLanguageColor(
+                                                _selectedUserLanguage ?? UserLanguage.korean,
+                                                colorScheme,
+                                              ),
                                               shape: BoxShape.circle,
                                             ),
                                           ),
@@ -977,10 +1011,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                                       ref
                                           .read(userLanguageProvider.notifier)
                                           .setUserLanguage(_selectedUserLanguage!);
+                                      final defaultSetupLang = LanguageMode.values.firstWhere(
+                                        (mode) => mode.englishName != _selectedUserLanguage!.englishName,
+                                        orElse: () => LanguageMode.japanese,
+                                      );
                                       setState(() {
                                         _isUserLanguageSetup = false;
                                         _isInitialSetup = true;
-                                        _selectedSetupLanguage = LanguageMode.japanese;
+                                        _selectedSetupLanguage = defaultSetupLang;
                                       });
                                     }
                                   },

@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/image_provider.dart';
 import '../providers/gemini_provider.dart';
@@ -204,21 +205,40 @@ class ResultScreen extends ConsumerWidget {
                           fontSize: 16,
                           letterSpacing: 0.5,
                         ),
-                        action: IconButton(
-                          icon: Icon(
-                            isTtsSpeaking
-                                ? Icons.stop_circle_rounded
-                                : Icons.volume_up_rounded,
-                            color: colorScheme.primary,
-                          ),
-                          onPressed: () {
-                            final ttsNotifier = ref.read(ttsProvider.notifier);
-                            if (isTtsSpeaking) {
-                              ttsNotifier.stop();
-                            } else {
-                              ttsNotifier.speak(result.originalText);
-                            }
-                          },
+                        action: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            IconButton(
+                              icon: Icon(
+                                Icons.copy_rounded,
+                                color: colorScheme.onSurfaceVariant,
+                              ),
+                              onPressed: () {
+                                Clipboard.setData(ClipboardData(text: result.originalText));
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(l10n.copiedToClipboard),
+                                  ),
+                                );
+                              },
+                            ),
+                            IconButton(
+                              icon: Icon(
+                                isTtsSpeaking
+                                    ? Icons.stop_circle_rounded
+                                    : Icons.volume_up_rounded,
+                                color: colorScheme.primary,
+                              ),
+                              onPressed: () {
+                                final ttsNotifier = ref.read(ttsProvider.notifier);
+                                if (isTtsSpeaking) {
+                                  ttsNotifier.stop();
+                                } else {
+                                  ttsNotifier.speak(result.originalText);
+                                }
+                              },
+                            ),
+                          ],
                         ),
                       ),
                       const SizedBox(height: 16),
@@ -232,6 +252,20 @@ class ResultScreen extends ConsumerWidget {
                         contentStyle: theme.textTheme.bodyLarge?.copyWith(
                           fontSize: 17,
                           fontWeight: FontWeight.bold,
+                        ),
+                        action: IconButton(
+                          icon: Icon(
+                            Icons.copy_rounded,
+                            color: colorScheme.onSurfaceVariant,
+                          ),
+                          onPressed: () {
+                            Clipboard.setData(ClipboardData(text: result.translation));
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(l10n.copiedToClipboard),
+                              ),
+                            );
+                          },
                         ),
                       ),
                       const SizedBox(height: 16),
@@ -254,23 +288,42 @@ class ResultScreen extends ConsumerWidget {
                           title: l10n.orderPhraseTitle,
                           icon: Icons.chat_bubble_outline_rounded,
                           iconColor: Colors.deepPurple,
-                          action: IconButton(
-                            icon: Icon(
-                              isTtsSpeaking
-                                  ? Icons.stop_circle_rounded
-                                  : Icons.volume_up_rounded,
-                              color: Colors.deepPurple,
-                            ),
-                            onPressed: () {
-                              final ttsNotifier = ref.read(
-                                ttsProvider.notifier,
-                              );
-                              if (isTtsSpeaking) {
-                                ttsNotifier.stop();
-                              } else {
-                                ttsNotifier.speak(result.orderPhraseJapanese);
-                              }
-                            },
+                          action: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              IconButton(
+                                icon: Icon(
+                                  Icons.copy_rounded,
+                                  color: colorScheme.onSurfaceVariant,
+                                ),
+                                onPressed: () {
+                                  Clipboard.setData(ClipboardData(text: result.orderPhraseJapanese));
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(l10n.copiedToClipboard),
+                                    ),
+                                  );
+                                },
+                              ),
+                              IconButton(
+                                icon: Icon(
+                                  isTtsSpeaking
+                                      ? Icons.stop_circle_rounded
+                                      : Icons.volume_up_rounded,
+                                  color: Colors.deepPurple,
+                                ),
+                                onPressed: () {
+                                  final ttsNotifier = ref.read(
+                                    ttsProvider.notifier,
+                                  );
+                                  if (isTtsSpeaking) {
+                                    ttsNotifier.stop();
+                                  } else {
+                                    ttsNotifier.speak(result.orderPhraseJapanese);
+                                  }
+                                },
+                              ),
+                            ],
                           ),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
