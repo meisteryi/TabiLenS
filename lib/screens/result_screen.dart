@@ -27,6 +27,29 @@ class ResultScreen extends ConsumerStatefulWidget {
 
 class _ResultScreenState extends ConsumerState<ResultScreen> {
   int _selectedItemIndex = 0;
+  final Map<int, GlobalKey> _chipKeys = {};
+
+  void _scrollToItem(int index) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final key = _chipKeys[index];
+      if (key?.currentContext != null) {
+        Scrollable.ensureVisible(
+          key!.currentContext!,
+          alignment: 0.5,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeInOut,
+        );
+      }
+    });
+  }
+
+  void _selectItem(int index) {
+    setState(() {
+      _selectedItemIndex = index;
+    });
+    _scrollToItem(index);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -380,6 +403,7 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
                                     }
 
                                     return Padding(
+                                      key: _chipKeys.putIfAbsent(idx, () => GlobalKey()),
                                       padding: const EdgeInsets.only(right: 8),
                                       child: ChoiceChip(
                                         label: Text(
@@ -400,15 +424,52 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
                                         showCheckmark: false,
                                         onSelected: (selected) {
                                           if (selected) {
-                                            setState(() {
-                                              _selectedItemIndex = idx;
-                                            });
+                                            _selectItem(idx);
                                           }
                                         },
                                       ),
                                     );
                                   }),
                                 ),
+                              ),
+                              const SizedBox(height: 12),
+                              // Previous / Next buttons right below the selected area
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: OutlinedButton.icon(
+                                      onPressed: safeIndex > 0
+                                          ? () => _selectItem(safeIndex - 1)
+                                          : null,
+                                      icon: const Icon(Icons.arrow_back_rounded, size: 16),
+                                      label: const Text('이전 메뉴'),
+                                      style: OutlinedButton.styleFrom(
+                                        padding: const EdgeInsets.symmetric(vertical: 11),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(12),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: ElevatedButton.icon(
+                                      onPressed: safeIndex < allItems.length - 1
+                                          ? () => _selectItem(safeIndex + 1)
+                                          : null,
+                                      icon: const Icon(Icons.arrow_forward_rounded, size: 16),
+                                      label: const Text('다음 메뉴'),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: colorScheme.primary,
+                                        foregroundColor: colorScheme.onPrimary,
+                                        padding: const EdgeInsets.symmetric(vertical: 11),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(12),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ),
                             ],
                           ),
@@ -651,57 +712,7 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
                           ),
                         ),
                       ),
-                      const SizedBox(height: 24),
-
-                      // 5. Multi-item Previous / Next Navigation Buttons
-                      if (allItems.length > 1) ...[
-                        Row(
-                          children: [
-                            Expanded(
-                              child: OutlinedButton.icon(
-                                onPressed: safeIndex > 0
-                                    ? () {
-                                        setState(() {
-                                          _selectedItemIndex = safeIndex - 1;
-                                        });
-                                      }
-                                    : null,
-                                icon: const Icon(Icons.arrow_back_rounded, size: 18),
-                                label: const Text('이전 메뉴'),
-                                style: OutlinedButton.styleFrom(
-                                  padding: const EdgeInsets.symmetric(vertical: 14),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(14),
-                                  ),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: ElevatedButton.icon(
-                                onPressed: safeIndex < allItems.length - 1
-                                    ? () {
-                                        setState(() {
-                                          _selectedItemIndex = safeIndex + 1;
-                                        });
-                                      }
-                                    : null,
-                                icon: const Icon(Icons.arrow_forward_rounded, size: 18),
-                                label: const Text('다음 메뉴'),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: colorScheme.primary,
-                                  foregroundColor: colorScheme.onPrimary,
-                                  padding: const EdgeInsets.symmetric(vertical: 14),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(14),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 24),
-                      ],
+                      const SizedBox(height: 32),
                     ],
                   ),
                 ),

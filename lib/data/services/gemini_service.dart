@@ -404,11 +404,7 @@ $fewShotSection
     Future<T> Function(GenerativeModel model) apiCall, {
     void Function(String status)? onStatusChanged,
   }) async {
-    final models = [
-      'gemini-2.5-flash',
-      'gemini-2.0-flash',
-      'gemini-1.5-flash',
-    ];
+    final models = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash'];
 
     // Priority order: start with the highest quota/speed model (gemini-3.1-flash-lite: 500 RPD) and fallback on quota or availability errors
     final prioritizedModels = List<String>.from(models);
