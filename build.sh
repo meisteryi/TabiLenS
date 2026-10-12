@@ -24,7 +24,11 @@ mkdir -p "$PROJECT_ROOT/build_outputs"
 echo "=========================================="
 echo "Building Android APK..."
 echo "=========================================="
-flutter build apk --release
+DART_DEFINE_ARGS=""
+if [ -f "$PROJECT_ROOT/.env" ]; then
+  DART_DEFINE_ARGS="--dart-define-from-file=.env"
+fi
+flutter build apk --release $DART_DEFINE_ARGS
 
 # Copy and rename APK
 APK_SOURCE="$PROJECT_ROOT/build/app/outputs/flutter-apk/app-release.apk"
@@ -36,7 +40,7 @@ echo "✓ Android APK exported to: $APK_DEST"
 echo "=========================================="
 echo "Building iOS IPA..."
 echo "=========================================="
-flutter build ipa --export-method=development
+flutter build ipa --export-method=development $DART_DEFINE_ARGS
 
 # Copy and rename IPA
 # The export path is build/ios/ipa/

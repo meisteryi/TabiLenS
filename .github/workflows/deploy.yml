@@ -31,9 +31,14 @@ jobs:
 
       - name: Install dependencies & Build Web
         run: |
-          echo "GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}" > .env
+          # Create empty placeholder for asset resolver if needed
+          touch .env
           flutter pub get
-          flutter build web --release --base-href "/${{ github.event.repository.name }}/"
+          flutter build web --release --base-href "/${{ github.event.repository.name }}/" --dart-define=GEMINI_API_KEY="${{ secrets.GEMINI_API_KEY }}"
+          # CRITICAL SECURITY SAFEGUARD: Ensure no .env file is ever exposed as a public web asset
+          rm -f build/web/assets/.env
+          rm -f build/web/assets/assets/.env
+          rm -f .env
 
       - name: Setup Pages
         uses: actions/configure-pages@v5

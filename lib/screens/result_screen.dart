@@ -37,22 +37,30 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
     final colorScheme = theme.colorScheme;
     final l10n = ref.watch(l10nProvider);
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(l10n.analysisResultTitle),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded),
-          onPressed: () {
-            ref.read(geminiNotifierProvider.notifier).reset();
-            ref.read(textSelectionProvider.notifier).clear();
-            ref.read(imageProvider.notifier).clear();
-            if (widget.popToFirst) {
-              Navigator.of(context).popUntil((route) => route.isFirst);
-            } else {
-              Navigator.of(context).pop();
-            }
-          },
-        ),
+    void handleBack() {
+      ref.read(geminiNotifierProvider.notifier).reset();
+      ref.read(textSelectionProvider.notifier).clear();
+      ref.read(imageProvider.notifier).clear();
+      if (widget.popToFirst) {
+        Navigator.of(context).popUntil((route) => route.isFirst);
+      } else {
+        Navigator.of(context).pop();
+      }
+    }
+
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (didPop) return;
+        handleBack();
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text(l10n.analysisResultTitle),
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back_ios_new_rounded),
+            onPressed: handleBack,
+          ),
         actions: [
           geminiState.maybeWhen(
             data: (result) {
@@ -79,6 +87,7 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
                     ref,
                     currentItem,
                     selectedImage?.path ?? '',
+                    croppedImageBytes: widget.croppedImageBytes,
                   );
                 },
               );
@@ -701,8 +710,9 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
           );
         },
       ),
-    );
-  }
+    ),
+  );
+}
 }
 
 class _BuildResultCard extends StatelessWidget {
@@ -892,6 +902,17 @@ class _BuildErrorState extends ConsumerWidget {
 
     // Clean up generic exception prefixes
     final cleanMessage = errorMessage.replaceAll('Exception:', '').trim();
+    final isNetworkError = cleanMessage.toLowerCase().contains('socket') ||
+        cleanMessage.toLowerCase().contains('host lookup') ||
+        cleanMessage.toLowerCase().contains('connection') ||
+        cleanMessage.toLowerCase().contains('clientexception') ||
+        cleanMessage.toLowerCase().contains('network') ||
+        cleanMessage.toLowerCase().contains('timeout');
+
+    final displayTitle = isNetworkError ? '네트워크 연결 오류' : l10n.errorAnalyzing;
+    final displayMessage = isNetworkError
+        ? '인터넷 연결이 원활하지 않습니다. Wi-Fi 또는 모바일 데이터 연결을 확인하고 다시 시도해 주세요.'
+        : cleanMessage;
 
     return Padding(
       padding: const EdgeInsets.all(24.0),
@@ -900,13 +921,13 @@ class _BuildErrorState extends ConsumerWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(
-              Icons.error_outline_rounded,
+              isNetworkError ? Icons.wifi_off_rounded : Icons.error_outline_rounded,
               size: 72,
               color: colorScheme.error,
             ),
             const SizedBox(height: 24),
             Text(
-              l10n.errorAnalyzing,
+              displayTitle,
               style: theme.textTheme.titleMedium?.copyWith(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
@@ -914,7 +935,7 @@ class _BuildErrorState extends ConsumerWidget {
             ),
             const SizedBox(height: 12),
             Text(
-              cleanMessage,
+              displayMessage,
               textAlign: TextAlign.center,
               style: theme.textTheme.bodyLarge?.copyWith(
                 color: colorScheme.onSurface.withValues(alpha: 0.7),
@@ -952,8 +973,9 @@ void _showFavoritesBottomSheet(
   BuildContext context,
   WidgetRef ref,
   TranslationResult result,
-  String imagePath,
-) {
+  String imagePath, {
+  Uint8List? croppedImageBytes,
+}) {
   showModalBottomSheet(
     context: context,
     isScrollControlled: true,
@@ -1018,7 +1040,12 @@ void _showFavoritesBottomSheet(
                           color: isInFolder ? colorScheme.primary : colorScheme.onSurface.withValues(alpha: 0.2),
                         ),
                         onTap: () {
-                          ref.read(favoritesProvider.notifier).toggleFavorite(folder.id, imagePath, result);
+                          ref.read(favoritesProvider.notifier).toggleFavorite(
+                                folder.id,
+                                imagePath,
+                                result,
+                                croppedImageBytes: croppedImageBytes,
+                              );
                         },
                       );
                     },

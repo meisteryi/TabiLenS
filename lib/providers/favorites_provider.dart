@@ -1,5 +1,7 @@
 import 'dart:convert';
+import 'dart:typed_data';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../core/utils/image_utils.dart';
 import '../data/models/translation_result.dart';
 import 'shared_preferences_provider.dart';
 
@@ -8,20 +10,30 @@ class FavoriteItem {
   final String imagePath;
   final TranslationResult result;
   final DateTime timestamp;
+  final Uint8List? croppedImageBytes;
 
   FavoriteItem({
     required this.id,
     required this.imagePath,
     required this.result,
     required this.timestamp,
+    this.croppedImageBytes,
   });
 
   factory FavoriteItem.fromJson(Map<String, dynamic> json) {
+    Uint8List? cropBytes;
+    if (json['cropped_image_base64'] != null) {
+      try {
+        cropBytes = base64Decode(json['cropped_image_base64'].toString());
+      } catch (_) {}
+    }
+
     return FavoriteItem(
       id: json['id']?.toString() ?? '',
       imagePath: json['image_path']?.toString() ?? '',
       result: TranslationResult.fromJson(json['result'] as Map<String, dynamic>),
       timestamp: DateTime.parse(json['timestamp']?.toString() ?? DateTime.now().toIso8601String()),
+      croppedImageBytes: cropBytes,
     );
   }
 
@@ -31,6 +43,8 @@ class FavoriteItem {
       'image_path': imagePath,
       'result': result.toJson(),
       'timestamp': timestamp.toIso8601String(),
+      if (croppedImageBytes != null)
+        'cropped_image_base64': base64Encode(croppedImageBytes!),
     };
   }
 }
@@ -96,7 +110,7 @@ class FavoritesNotifier extends Notifier<List<FavoriteFolder>> {
         return decodedList
             .map((folder) => FavoriteFolder.fromJson(folder as Map<String, dynamic>))
             .toList();
-      } catch (e) {
+      } catch (_) {
         // Fallback to default folder if decode fails
       }
     }
@@ -110,13 +124,13 @@ class FavoritesNotifier extends Notifier<List<FavoriteFolder>> {
     ];
   }
 
-  void _saveToStorage(List<FavoriteFolder> folders) {
+  Future<void> _saveToStorage(List<FavoriteFolder> folders) async {
     final prefs = ref.read(sharedPreferencesProvider);
     final jsonString = jsonEncode(folders.map((f) => f.toJson()).toList());
-    prefs.setString(_storageKey, jsonString);
+    await prefs.setString(_storageKey, jsonString);
   }
 
-  void createFolder(String name, String emoji) {
+  Future<void> createFolder(String name, String emoji) async {
     final newFolder = FavoriteFolder(
       id: DateTime.now().microsecondsSinceEpoch.toString(),
       name: name,
@@ -124,19 +138,29 @@ class FavoritesNotifier extends Notifier<List<FavoriteFolder>> {
       items: [],
     );
     state = [...state, newFolder];
-    _saveToStorage(state);
+    await _saveToStorage(state);
   }
 
-  void deleteFolder(String id) {
+  Future<void> deleteFolder(String id) async {
     if (id == 'default') return;
     state = state.where((f) => f.id != id).toList();
-    _saveToStorage(state);
+    await _saveToStorage(state);
   }
 
-  void toggleFavorite(String folderId, String imagePath, TranslationResult result) {
+  Future<void> toggleFavorite(
+    String folderId,
+    String imagePath,
+    TranslationResult result, {
+    Uint8List? croppedImageBytes,
+  }) async {
+    // Persist temporary image to app documents directory
+    final permanentPath = await ImageUtils.persistImageFile(imagePath);
+
     state = state.map((folder) {
       if (folder.id == folderId) {
-        final index = folder.items.indexWhere((item) => item.result.originalText == result.originalText);
+        final index = folder.items.indexWhere(
+          (item) => item.result.originalText == result.originalText,
+        );
         if (index != -1) {
           // Remove if already exists in this folder
           final updatedItems = List<FavoriteItem>.from(folder.items)..removeAt(index);
@@ -145,19 +169,20 @@ class FavoritesNotifier extends Notifier<List<FavoriteFolder>> {
           // Add if not exists
           final newItem = FavoriteItem(
             id: DateTime.now().microsecondsSinceEpoch.toString(),
-            imagePath: imagePath,
+            imagePath: permanentPath,
             result: result,
             timestamp: DateTime.now(),
+            croppedImageBytes: croppedImageBytes,
           );
           return folder.copyWith(items: [...folder.items, newItem]);
         }
       }
       return folder;
     }).toList();
-    _saveToStorage(state);
+    await _saveToStorage(state);
   }
 
-  void removeFromFolder(String folderId, String itemId) {
+  Future<void> removeFromFolder(String folderId, String itemId) async {
     state = state.map((folder) {
       if (folder.id == folderId) {
         return folder.copyWith(
@@ -166,11 +191,15 @@ class FavoritesNotifier extends Notifier<List<FavoriteFolder>> {
       }
       return folder;
     }).toList();
-    _saveToStorage(state);
+    await _saveToStorage(state);
   }
 
   bool isItemInFolder(String folderId, String originalText) {
-    final folder = state.firstWhere((f) => f.id == folderId);
+    final folder = state.cast<FavoriteFolder?>().firstWhere(
+      (f) => f?.id == folderId,
+      orElse: () => null,
+    );
+    if (folder == null) return false;
     return folder.items.any((item) => item.result.originalText == originalText);
   }
 
@@ -182,5 +211,3 @@ class FavoritesNotifier extends Notifier<List<FavoriteFolder>> {
 final favoritesProvider = NotifierProvider<FavoritesNotifier, List<FavoriteFolder>>(() {
   return FavoritesNotifier();
 });
-
-

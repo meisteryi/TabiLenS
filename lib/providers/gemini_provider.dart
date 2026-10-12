@@ -32,8 +32,12 @@ class GeminiNotifier extends AsyncNotifier<TranslationResult?> {
         targetLanguage: userLang.name,
       );
 
-      // Save to scan history
-      ref.read(historyProvider.notifier).addHistory(image, result);
+      // Save to scan history with cropped snippet
+      ref.read(historyProvider.notifier).addHistory(
+            image,
+            result,
+            croppedImageBytes: cropBytes,
+          );
 
       return result;
     });

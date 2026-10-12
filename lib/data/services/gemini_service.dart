@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import '../models/translation_result.dart';
 import '../models/detected_text_block.dart';
 import '../../core/constants/env_keys.dart';
@@ -16,7 +15,7 @@ class GeminiService {
   GenerativeModel _createModel(String modelName) {
     return GenerativeModel(
       model: modelName,
-      apiKey: dotenv.env[EnvKeys.geminiApiKey] ?? '',
+      apiKey: EnvKeys.apiKey,
       generationConfig: GenerationConfig(
         responseMimeType: 'application/json',
         temperature: 0.0,
@@ -31,12 +30,10 @@ class GeminiService {
     String targetLanguage = '한국어',
     void Function(String status)? onStatusChanged,
   }) async {
-    final apiKey = dotenv.env[EnvKeys.geminiApiKey];
-    if (apiKey == null ||
-        apiKey.isEmpty ||
-        apiKey == 'your_gemini_api_key_here') {
+    final apiKey = EnvKeys.apiKey;
+    if (apiKey.isEmpty || apiKey == 'your_gemini_api_key_here') {
       throw Exception(
-        'Gemini API key is not configured. Please set your key in the .env file.',
+        'Gemini API key is not configured. Please set your key in the .env file or build with --dart-define=GEMINI_API_KEY=your_key.',
       );
     }
 
@@ -180,12 +177,10 @@ $fewShotSection
       return _translationCache[cacheKey]!;
     }
 
-    final apiKey = dotenv.env[EnvKeys.geminiApiKey];
-    if (apiKey == null ||
-        apiKey.isEmpty ||
-        apiKey == 'your_gemini_api_key_here') {
+    final apiKey = EnvKeys.apiKey;
+    if (apiKey.isEmpty || apiKey == 'your_gemini_api_key_here') {
       throw Exception(
-        'Gemini API key is not configured. Please set your key in the .env file.',
+        'Gemini API key is not configured. Please set your key in the .env file or build with --dart-define=GEMINI_API_KEY=your_key.',
       );
     }
 
@@ -237,12 +232,10 @@ $fewShotSection
     String targetLanguage = '한국어',
     void Function(String status)? onStatusChanged,
   }) async {
-    final apiKey = dotenv.env[EnvKeys.geminiApiKey];
-    if (apiKey == null ||
-        apiKey.isEmpty ||
-        apiKey == 'your_gemini_api_key_here') {
+    final apiKey = EnvKeys.apiKey;
+    if (apiKey.isEmpty || apiKey == 'your_gemini_api_key_here') {
       throw Exception(
-        'Gemini API key is not configured. Please set your key in the .env file.',
+        'Gemini API key is not configured. Please set your key in the .env file or build with --dart-define=GEMINI_API_KEY=your_key.',
       );
     }
 
@@ -412,9 +405,9 @@ $fewShotSection
     void Function(String status)? onStatusChanged,
   }) async {
     final models = [
-      'gemini-3.1-flash-lite',
-      'gemini-3.6-flash',
       'gemini-2.5-flash',
+      'gemini-2.0-flash',
+      'gemini-1.5-flash',
     ];
 
     // Priority order: start with the highest quota/speed model (gemini-3.1-flash-lite: 500 RPD) and fallback on quota or availability errors

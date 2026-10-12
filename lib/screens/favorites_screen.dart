@@ -145,19 +145,26 @@ class FavoritesScreen extends ConsumerWidget {
                                   ),
                                   child: ClipRRect(
                                     borderRadius: BorderRadius.circular(8),
-                                    child: kIsWeb
-                                        ? Image.network(
-                                            item.imagePath,
+                                    child: item.croppedImageBytes != null
+                                        ? Image.memory(
+                                            item.croppedImageBytes!,
                                             fit: BoxFit.cover,
                                             errorBuilder: (context, error, stackTrace) =>
                                                 const Icon(Icons.broken_image_rounded),
                                           )
-                                        : Image.file(
-                                            File(item.imagePath),
-                                            fit: BoxFit.cover,
-                                            errorBuilder: (context, error, stackTrace) =>
-                                                const Icon(Icons.broken_image_rounded),
-                                          ),
+                                        : (kIsWeb
+                                            ? Image.network(
+                                                item.imagePath,
+                                                fit: BoxFit.cover,
+                                                errorBuilder: (context, error, stackTrace) =>
+                                                    const Icon(Icons.broken_image_rounded),
+                                              )
+                                            : Image.file(
+                                                File(item.imagePath),
+                                                fit: BoxFit.cover,
+                                                errorBuilder: (context, error, stackTrace) =>
+                                                    const Icon(Icons.broken_image_rounded),
+                                              )),
                                   ),
                                 ),
                                 title: Text(
@@ -183,7 +190,10 @@ class FavoritesScreen extends ConsumerWidget {
                                   
                                   Navigator.of(context).push(
                                     MaterialPageRoute(
-                                      builder: (context) => const ResultScreen(popToFirst: false),
+                                      builder: (context) => ResultScreen(
+                                        popToFirst: false,
+                                        croppedImageBytes: item.croppedImageBytes,
+                                      ),
                                     ),
                                   );
                                 },
