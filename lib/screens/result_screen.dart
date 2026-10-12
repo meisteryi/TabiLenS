@@ -10,7 +10,9 @@ import '../providers/favorites_provider.dart';
 import '../data/models/translation_result.dart';
 import '../providers/language_provider.dart';
 import 'package:flutter/foundation.dart';
+import 'package:share_plus/share_plus.dart';
 import '../core/localization/app_strings.dart';
+import '../core/utils/currency_helper.dart';
 
 class ResultScreen extends ConsumerStatefulWidget {
   final bool popToFirst;
@@ -50,6 +52,49 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
       _selectedItemIndex = index;
     });
     _scrollToItem(index);
+  }
+
+  void _shareAnalysisResult(
+    BuildContext context,
+    TranslationResult result,
+    LanguageMode currentLang,
+  ) {
+    final buffer = StringBuffer();
+    buffer.writeln('📋 [TabiLenS] 메뉴판 번역 & 여행 기록');
+    buffer.writeln('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    for (int i = 0; i < result.allItems.length; i++) {
+      final item = result.allItems[i];
+      final priceInfo = CurrencyHelper.extractAndConvertPrice(
+        item.originalText,
+        languageMode: currentLang,
+        explicitPrice: item.price,
+      );
+      buffer.writeln('${i + 1}. ${item.originalText}');
+      buffer.writeln('   👉 번역: ${item.translation}');
+      if (priceInfo != null) {
+        buffer.writeln('   🏷️ 가격: ${priceInfo.originalPriceText} (${priceInfo.formattedKrw})');
+      }
+      if (item.context.isNotEmpty) {
+        buffer.writeln('   💡 설명: ${item.context}');
+      }
+      if (item.allergyInfo.isNotEmpty) {
+        buffer.writeln('   ⚠️ 알레르기/재료: ${item.allergyInfo}');
+      }
+      if (item.orderPhraseJapanese.isNotEmpty) {
+        buffer.writeln('   🗣️ 추천 주문: ${item.orderPhraseJapanese}');
+      }
+      buffer.writeln();
+    }
+    buffer.writeln('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    buffer.writeln('Shared via TabiLenS ✈️');
+
+    final text = buffer.toString().trim();
+    SharePlus.instance.share(
+      ShareParams(
+        text: text,
+        subject: 'TabiLenS 메뉴 번역 목록',
+      ),
+    );
   }
 
   @override
@@ -99,21 +144,37 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
                     ),
                   );
 
-              return IconButton(
-                icon: Icon(
-                  isBookmarked ? Icons.star_rounded : Icons.star_border_rounded,
-                  color: isBookmarked ? Colors.amber : null,
-                  size: 28,
-                ),
-                onPressed: () {
-                  _showFavoritesBottomSheet(
-                    context,
-                    ref,
-                    currentItem,
-                    selectedImage?.path ?? '',
-                    croppedImageBytes: widget.croppedImageBytes,
-                  );
-                },
+              return Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.share_rounded),
+                    tooltip: '메뉴 목록 공유',
+                    onPressed: () {
+                      _shareAnalysisResult(
+                        context,
+                        result,
+                        ref.read(languageProvider),
+                      );
+                    },
+                  ),
+                  IconButton(
+                    icon: Icon(
+                      isBookmarked ? Icons.star_rounded : Icons.star_border_rounded,
+                      color: isBookmarked ? Colors.amber : null,
+                      size: 28,
+                    ),
+                    onPressed: () {
+                      _showFavoritesBottomSheet(
+                        context,
+                        ref,
+                        currentItem,
+                        selectedImage?.path ?? '',
+                        croppedImageBytes: widget.croppedImageBytes,
+                      );
+                    },
+                  ),
+                ],
               );
             },
             orElse: () => const SizedBox.shrink(),
@@ -149,6 +210,12 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
           final allItems = result.allItems;
           final safeIndex = _selectedItemIndex.clamp(0, allItems.length - 1);
           final currentItem = allItems[safeIndex];
+          final currentLang = ref.watch(languageProvider);
+          final priceInfo = CurrencyHelper.extractAndConvertPrice(
+            currentItem.originalText,
+            languageMode: currentLang,
+            explicitPrice: currentItem.price,
+          );
 
           return SingleChildScrollView(
             physics: const BouncingScrollPhysics(),
@@ -392,15 +459,24 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
                                     final isSelected = idx == safeIndex;
                                     final original = item.originalText.trim();
                                     final translation = item.translation.trim();
+                                    final itemPrice = CurrencyHelper.extractAndConvertPrice(
+                                      item.originalText,
+                                      languageMode: currentLang,
+                                      explicitPrice: item.price,
+                                    );
+                                    final priceSuffix = itemPrice != null
+                                        ? ' · ${itemPrice.originalPriceText}'
+                                        : '';
                                     final String chipLabel;
                                     if (original.isNotEmpty &&
                                         translation.isNotEmpty &&
                                         original != translation) {
-                                      chipLabel = '${idx + 1}. $original ($translation)';
+                                      chipLabel =
+                                          '${idx + 1}. $original ($translation)$priceSuffix';
                                     } else if (original.isNotEmpty) {
-                                      chipLabel = '${idx + 1}. $original';
+                                      chipLabel = '${idx + 1}. $original$priceSuffix';
                                     } else {
-                                      chipLabel = '${idx + 1}. $translation';
+                                      chipLabel = '${idx + 1}. $translation$priceSuffix';
                                     }
 
                                     return Padding(
@@ -533,11 +609,6 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
                         title: l10n.translationLabel,
                         icon: Icons.translate_rounded,
                         iconColor: colorScheme.primary,
-                        content: currentItem.translation,
-                        contentStyle: theme.textTheme.bodyLarge?.copyWith(
-                          fontSize: 17,
-                          fontWeight: FontWeight.bold,
-                        ),
                         action: IconButton(
                           icon: Icon(
                             Icons.copy_rounded,
@@ -553,6 +624,53 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
                               ),
                             );
                           },
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              currentItem.translation,
+                              style: theme.textTheme.bodyLarge?.copyWith(
+                                fontSize: 17,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            if (priceInfo != null) ...[
+                              const SizedBox(height: 12),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 8,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.teal.withValues(alpha: 0.1),
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(
+                                    color: Colors.teal.withValues(alpha: 0.25),
+                                  ),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Icon(
+                                      Icons.payments_outlined,
+                                      size: 18,
+                                      color: Colors.teal,
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      '${priceInfo.originalPriceText}  ➔  ${priceInfo.formattedKrw}',
+                                      style: const TextStyle(
+                                        color: Colors.teal,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ],
                         ),
                       ),
                       const SizedBox(height: 16),
@@ -1487,6 +1605,59 @@ void _showOrderCardModal(
                                 ),
                               ],
                             ),
+                            if (CurrencyHelper.extractAndConvertPrice(
+                                  item.originalText,
+                                  languageMode: currentLang,
+                                  explicitPrice: item.price,
+                                ) !=
+                                null) ...[
+                              const SizedBox(height: 14),
+                              Builder(
+                                builder: (context) {
+                                  final modalPriceInfo =
+                                      CurrencyHelper.extractAndConvertPrice(
+                                    item.originalText,
+                                    languageMode: currentLang,
+                                    explicitPrice: item.price,
+                                  )!;
+                                  return Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 14,
+                                      vertical: 8,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: Colors.teal.withValues(alpha: 0.12),
+                                      borderRadius: BorderRadius.circular(12),
+                                      border: Border.all(
+                                        color: Colors.teal.withValues(alpha: 0.3),
+                                      ),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        const Icon(
+                                          Icons.payments_outlined,
+                                          size: 18,
+                                          color: Colors.teal,
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Text(
+                                          CurrencyHelper.formatMultiplied(
+                                            modalPriceInfo,
+                                            quantity,
+                                          ),
+                                          style: const TextStyle(
+                                            color: Colors.teal,
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 14,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                },
+                              ),
+                            ],
                             const SizedBox(height: 18),
 
                             // Large Order sentence for waiter
