@@ -534,10 +534,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
       final selectedImage = ref.read(imageProvider);
       if (selectedImage != null && context.mounted) {
-        // Trigger block detection
-        ref.read(textSelectionProvider.notifier).detectBlocks(selectedImage);
+        // Clear previous state so user can immediately view photo and drag desired area (0-sec load!)
+        ref.read(textSelectionProvider.notifier).clear();
 
-        // Navigate to the selection screen
+        // Navigate to the selection screen immediately
         Navigator.of(context).push(
           MaterialPageRoute(builder: (context) => const TextSelectionScreen()),
         );

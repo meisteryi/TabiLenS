@@ -61,4 +61,48 @@ class ImageUtils {
       return pickedFile;
     }
   }
+
+  /// Crops the image based on normalized coordinates (0.0 to 1.0)
+  static Future<Uint8List> cropNormalizedArea(
+    XFile imageFile, {
+    required double normXmin,
+    required double normYmin,
+    required double normXmax,
+    required double normYmax,
+  }) async {
+    try {
+      final bytes = await imageFile.readAsBytes();
+      final img.Image? decoded = img.decodeImage(bytes);
+      if (decoded == null) return bytes;
+
+      // Ensure min < max
+      final double left = normXmin < normXmax ? normXmin : normXmax;
+      final double right = normXmin > normXmax ? normXmin : normXmax;
+      final double top = normYmin < normYmax ? normYmin : normYmax;
+      final double bottom = normYmin > normYmax ? normYmin : normYmax;
+
+      // Add a small 1.5% margin so edge characters are not clipped
+      const double margin = 0.015;
+      final int x = ((left - margin).clamp(0.0, 1.0) * decoded.width).round();
+      final int y = ((top - margin).clamp(0.0, 1.0) * decoded.height).round();
+      final int x2 = ((right + margin).clamp(0.0, 1.0) * decoded.width).round();
+      final int y2 = ((bottom + margin).clamp(0.0, 1.0) * decoded.height).round();
+
+      final int w = (x2 - x).clamp(10, decoded.width - x);
+      final int h = (y2 - y).clamp(10, decoded.height - y);
+
+      final img.Image cropped = img.copyCrop(
+        decoded,
+        x: x,
+        y: y,
+        width: w,
+        height: h,
+      );
+
+      return Uint8List.fromList(img.encodeJpg(cropped, quality: 90));
+    } catch (e) {
+      debugPrint('[ImageUtils] Error cropping normalized area: $e');
+      return await imageFile.readAsBytes();
+    }
+  }
 }

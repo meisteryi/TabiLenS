@@ -2,10 +2,13 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 
+import '../../providers/language_provider.dart';
+
 class TtsNotifier extends StateNotifier<bool> {
   final FlutterTts _flutterTts = FlutterTts();
+  final Ref? ref;
 
-  TtsNotifier() : super(false) {
+  TtsNotifier([this.ref]) : super(false) {
     _initTts();
   }
 
@@ -28,14 +31,36 @@ class TtsNotifier extends StateNotifier<bool> {
     });
   }
 
-  Future<void> speak(String text) async {
+  String _getTtsLocaleForMode(LanguageMode mode) {
+    switch (mode) {
+      case LanguageMode.french:
+        return 'fr-FR';
+      case LanguageMode.spanish:
+        return 'es-ES';
+      case LanguageMode.english:
+        return 'en-US';
+      case LanguageMode.chinese:
+        return 'zh-CN';
+      case LanguageMode.japanese:
+        return 'ja-JP';
+    }
+  }
+
+  Future<void> speak(String text, {String? localeCode}) async {
     if (state) {
       await stop();
     }
 
     try {
-      // Set to Japanese language
-      await _flutterTts.setLanguage('ja-JP');
+      String targetLocale = localeCode ?? 'ja-JP';
+      if (localeCode == null && ref != null) {
+        try {
+          final activeLang = ref!.read(languageProvider);
+          targetLocale = _getTtsLocaleForMode(activeLang);
+        } catch (_) {}
+      }
+
+      await _flutterTts.setLanguage(targetLocale);
       // Set a slightly slower speech rate for clarity in foreign languages
       await _flutterTts.setSpeechRate(0.4);
       await _flutterTts.setVolume(1.0);
@@ -65,5 +90,5 @@ class TtsNotifier extends StateNotifier<bool> {
 }
 
 final ttsProvider = StateNotifierProvider.autoDispose<TtsNotifier, bool>((ref) {
-  return TtsNotifier();
+  return TtsNotifier(ref);
 });

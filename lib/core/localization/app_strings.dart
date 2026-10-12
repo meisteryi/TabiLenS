@@ -234,6 +234,15 @@ class AppStrings {
         UserLanguage.french: 'Vocabulaire & Contexte',
       }[lang] ?? '단어 설명 및 맥락';
 
+  String get allergyInfoLabel => {
+        UserLanguage.korean: '알레르기 유발 성분 및 주의사항',
+        UserLanguage.english: 'Allergy Information & Warnings',
+        UserLanguage.japanese: 'アレルギー情報・注意事項',
+        UserLanguage.chinese: '过敏原信息与注意事项',
+        UserLanguage.spanish: 'Información y advertencias de alergias',
+        UserLanguage.french: 'Allergènes et avertissements',
+      }[lang] ?? '알레르기 유발 성분 및 주의사항';
+
   String get copiedToClipboard => {
         UserLanguage.korean: '클립보드에 복사되었습니다.',
         UserLanguage.english: 'Copied to clipboard.',
@@ -683,6 +692,105 @@ class AppStrings {
         UserLanguage.spanish: 'Texto seleccionado',
         UserLanguage.french: 'Texte sélectionné',
       }[lang] ?? '선택된 텍스트';
+
+  String get dragAreaInstruction => {
+        UserLanguage.korean: '번역하고 싶은 메뉴 영역을 손가락으로 드래그해 보세요.',
+        UserLanguage.english: 'Drag your finger over the menu area you want to translate.',
+        UserLanguage.japanese: '翻訳したいメニュー領域を指でドラッグしてください。',
+        UserLanguage.chinese: '请用手指拖动选择您要翻译的菜单区域。',
+        UserLanguage.spanish: 'Arrastra con el dedo sobre el área del menú que deseas traducir.',
+        UserLanguage.french: 'Glissez avec votre doigt sur la zone du menu à traduire.',
+      }[lang] ?? '번역하고 싶은 메뉴 영역을 손가락으로 드래그해 보세요.';
+
+  String get dragModeTitle => {
+        UserLanguage.korean: '영역 드래그',
+        UserLanguage.english: 'Drag Area',
+        UserLanguage.japanese: '領域ドラッグ',
+        UserLanguage.chinese: '拖动区域',
+        UserLanguage.spanish: 'Arrastrar área',
+        UserLanguage.french: 'Glisser la zone',
+      }[lang] ?? '영역 드래그';
+
+  String get rectDragModeTitle => {
+        UserLanguage.korean: '사각형',
+        UserLanguage.english: 'Rectangle',
+        UserLanguage.japanese: '四角形',
+        UserLanguage.chinese: '矩形',
+        UserLanguage.spanish: 'Rectángulo',
+        UserLanguage.french: 'Rectangle',
+      }[lang] ?? '사각형';
+
+  String get freeformDragModeTitle => {
+        UserLanguage.korean: '자유 곡선',
+        UserLanguage.english: 'Freeform',
+        UserLanguage.japanese: 'フリーハンド',
+        UserLanguage.chinese: '自由手绘',
+        UserLanguage.spanish: 'Forma libre',
+        UserLanguage.french: 'Forme libre',
+      }[lang] ?? '자유 곡선';
+
+  String get rectDragInstruction => {
+        UserLanguage.korean: '터치한 시작점에서 대각선으로 드래그하여 사각형을 지정하세요.',
+        UserLanguage.english: 'Drag diagonally from your touch point to set the rectangle.',
+        UserLanguage.japanese: 'タッチした点から斜めにドラッグして四角形を指定してください。',
+        UserLanguage.chinese: '从触摸起点对角拖动以选择矩形区域。',
+        UserLanguage.spanish: 'Arrastra en diagonal desde el punto de inicio para el rectángulo.',
+        UserLanguage.french: 'Glissez en diagonale depuis le point de départ pour le rectangle.',
+      }[lang] ?? '터치한 시작점에서 대각선으로 드래그하여 사각형을 지정하세요.';
+
+  String get freeformDragInstruction => {
+        UserLanguage.korean: '손가락으로 원하는 메뉴 영역을 따라 자유롭게 그려보세요.',
+        UserLanguage.english: 'Draw freely around the menu area with your finger.',
+        UserLanguage.japanese: '指でメニューの周りを自由になぞって描いてください。',
+        UserLanguage.chinese: '用手指在菜单周围自由绘制区域。',
+        UserLanguage.spanish: 'Dibuja libremente con el dedo alrededor del área del menú.',
+        UserLanguage.french: 'Dessinez librement autour de la zone du menu avec votre doigt.',
+      }[lang] ?? '손가락으로 원하는 메뉴 영역을 따라 자유롭게 그려보세요.';
+
+  String get panZoomModeTitle => {
+        UserLanguage.korean: '확대/이동',
+        UserLanguage.english: 'Zoom & Move',
+        UserLanguage.japanese: '拡大・移動',
+        UserLanguage.chinese: '缩放/移动',
+        UserLanguage.spanish: 'Zoom y mover',
+        UserLanguage.french: 'Zoom & déplacer',
+      }[lang] ?? '확대/이동';
+
+  String get defaultPanZoomInstruction => {
+        UserLanguage.korean: '드래그하여 이동 · 두 손가락으로 확대/축소',
+        UserLanguage.english: 'Drag to move · Pinch with two fingers to zoom',
+        UserLanguage.japanese: 'ドラッグで移動・2本指でピンチズーム',
+        UserLanguage.chinese: '单指拖动平移 · 双指捏合缩放',
+        UserLanguage.spanish: 'Arrastra para mover · Pellizca con dos dedos para zoom',
+        UserLanguage.french: 'Glissez pour déplacer · Pincez à deux doigts pour zoomer',
+      }[lang] ?? '드래그하여 이동 · 두 손가락으로 확대/축소';
+
+  String get analyzeSelectedAreaBtn => {
+        UserLanguage.korean: '선택한 영역 번역 및 상세 해설',
+        UserLanguage.english: 'Translate & Explain Selected Area',
+        UserLanguage.japanese: '選択領域を翻訳・解説',
+        UserLanguage.chinese: '翻译并解读所选区域',
+        UserLanguage.spanish: 'Traducir y explicar área seleccionada',
+        UserLanguage.french: 'Traduire et expliquer la zone',
+      }[lang] ?? '선택한 영역 번역 및 상세 해설';
+
+  String get autoDetectAllBtn => {
+        UserLanguage.korean: '전체 자동 감지',
+        UserLanguage.english: 'Auto Detect All',
+        UserLanguage.japanese: '全体自動検出',
+        UserLanguage.chinese: '全图自动检测',
+        UserLanguage.spanish: 'Detección automática total',
+        UserLanguage.french: 'Détection automatique',
+      }[lang] ?? '전체 자동 감지';
+
+  String get analyzingCropStatus => {
+        UserLanguage.korean: 'AI가 선택한 영역의 글씨를 읽고 해설하는 중...',
+        UserLanguage.english: 'AI is reading and explaining the selected area...',
+        UserLanguage.japanese: 'AIが選択された領域の文字を読み取り解説中...',
+        UserLanguage.chinese: 'AI 正在识别并解读所选区域的文本...',
+        UserLanguage.spanish: 'La IA está leyendo y explicando el área seleccionada...',
+        UserLanguage.french: 'L\'IA analyse la zone sélectionnée...',
+      }[lang] ?? 'AI가 선택한 영역의 글씨를 읽고 해설하는 중...';
 
   String get viewGuideBtn => {
         UserLanguage.korean: '선택한 텍스트 해설 및 가이드 보기',

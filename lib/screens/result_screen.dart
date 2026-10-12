@@ -11,16 +11,25 @@ import '../data/models/translation_result.dart';
 import 'package:flutter/foundation.dart';
 import '../core/localization/app_strings.dart';
 
-class ResultScreen extends ConsumerWidget {
+class ResultScreen extends ConsumerStatefulWidget {
   final bool popToFirst;
+  final Uint8List? croppedImageBytes;
 
   const ResultScreen({
     super.key,
     this.popToFirst = true,
+    this.croppedImageBytes,
   });
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<ResultScreen> createState() => _ResultScreenState();
+}
+
+class _ResultScreenState extends ConsumerState<ResultScreen> {
+  int _selectedItemIndex = 0;
+
+  @override
+  Widget build(BuildContext context) {
     final selectedImage = ref.watch(imageProvider);
     final geminiState = ref.watch(geminiNotifierProvider);
     final isTtsSpeaking = ref.watch(ttsProvider);
@@ -37,7 +46,7 @@ class ResultScreen extends ConsumerWidget {
             ref.read(geminiNotifierProvider.notifier).reset();
             ref.read(textSelectionProvider.notifier).clear();
             ref.read(imageProvider.notifier).clear();
-            if (popToFirst) {
+            if (widget.popToFirst) {
               Navigator.of(context).popUntil((route) => route.isFirst);
             } else {
               Navigator.of(context).pop();
@@ -48,9 +57,13 @@ class ResultScreen extends ConsumerWidget {
           geminiState.maybeWhen(
             data: (result) {
               if (result == null) return const SizedBox.shrink();
+              final allItems = result.allItems;
+              final safeIndex = _selectedItemIndex.clamp(0, allItems.length - 1);
+              final currentItem = allItems[safeIndex];
+
               final isBookmarked = ref.watch(favoritesProvider).any(
                     (folder) => folder.items.any(
-                      (item) => item.result.originalText == result.originalText,
+                      (item) => item.result.originalText == currentItem.originalText,
                     ),
                   );
 
@@ -64,7 +77,7 @@ class ResultScreen extends ConsumerWidget {
                   _showFavoritesBottomSheet(
                     context,
                     ref,
-                    result,
+                    currentItem,
                     selectedImage?.path ?? '',
                   );
                 },
@@ -75,7 +88,10 @@ class ResultScreen extends ConsumerWidget {
         ],
       ),
       body: geminiState.when(
-        loading: () => _BuildLoadingState(imagePath: selectedImage?.path),
+        loading: () => _BuildLoadingState(
+          imagePath: selectedImage?.path,
+          croppedImageBytes: widget.croppedImageBytes,
+        ),
         error: (error, stack) => _BuildErrorState(
           errorMessage: error.toString(),
           onRetry: () {
@@ -91,16 +107,90 @@ class ResultScreen extends ConsumerWidget {
         ),
         data: (result) {
           if (result == null) {
-            return _BuildLoadingState(imagePath: selectedImage?.path);
+            return _BuildLoadingState(
+              imagePath: selectedImage?.path,
+              croppedImageBytes: widget.croppedImageBytes,
+            );
           }
+
+          final allItems = result.allItems;
+          final safeIndex = _selectedItemIndex.clamp(0, allItems.length - 1);
+          final currentItem = allItems[safeIndex];
 
           return SingleChildScrollView(
             physics: const BouncingScrollPhysics(),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // Display input image
-                if (selectedImage != null)
+                // Display cropped image (if user cropped an area) or input image
+                if (widget.croppedImageBytes != null)
+                  Container(
+                    height: 220,
+                    width: double.infinity,
+                    margin: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.35),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: colorScheme.primary.withValues(alpha: 0.3),
+                        width: 1.5,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.08),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: Stack(
+                      children: [
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(18),
+                          child: Center(
+                            child: Image.memory(
+                              widget.croppedImageBytes!,
+                              fit: BoxFit.contain,
+                            ),
+                          ),
+                        ),
+                        Positioned(
+                          top: 10,
+                          right: 10,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 5,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.black.withValues(alpha: 0.65),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: const Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.crop_rounded,
+                                  size: 13,
+                                  color: Colors.white,
+                                ),
+                                SizedBox(width: 5),
+                                Text(
+                                  '선택 크롭 영역',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
+                else if (selectedImage != null)
                   Builder(
                     builder: (context) {
                       final imageFileExists = kIsWeb || File(selectedImage.path).existsSync();
@@ -194,12 +284,134 @@ class ResultScreen extends ConsumerWidget {
                   padding: const EdgeInsets.symmetric(horizontal: 16.0),
                   child: Column(
                     children: [
+                      // Multi-item selector header if more than 1 item detected
+                      if (allItems.length > 1) ...[
+                        Container(
+                          margin: const EdgeInsets.only(bottom: 16),
+                          padding: const EdgeInsets.all(14),
+                          decoration: BoxDecoration(
+                            color: colorScheme.surface,
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(
+                              color: colorScheme.primary.withValues(alpha: 0.25),
+                              width: 1.5,
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: colorScheme.primary.withValues(alpha: 0.06),
+                                blurRadius: 12,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(6),
+                                    decoration: BoxDecoration(
+                                      color: colorScheme.primary.withValues(alpha: 0.12),
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: Icon(
+                                      Icons.restaurant_menu_rounded,
+                                      size: 18,
+                                      color: colorScheme.primary,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    '선택 영역 내 메뉴 원어 목록 (${allItems.length}개)',
+                                    style: theme.textTheme.titleSmall?.copyWith(
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  const Spacer(),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 10,
+                                      vertical: 4,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: colorScheme.primary,
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: Text(
+                                      '${safeIndex + 1} / ${allItems.length}',
+                                      style: TextStyle(
+                                        color: colorScheme.onPrimary,
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 12),
+                              SingleChildScrollView(
+                                scrollDirection: Axis.horizontal,
+                                physics: const BouncingScrollPhysics(),
+                                child: Row(
+                                  children: List.generate(allItems.length, (idx) {
+                                    final item = allItems[idx];
+                                    final isSelected = idx == safeIndex;
+                                    final original = item.originalText.trim();
+                                    final translation = item.translation.trim();
+                                    final String chipLabel;
+                                    if (original.isNotEmpty &&
+                                        translation.isNotEmpty &&
+                                        original != translation) {
+                                      chipLabel = '${idx + 1}. $original ($translation)';
+                                    } else if (original.isNotEmpty) {
+                                      chipLabel = '${idx + 1}. $original';
+                                    } else {
+                                      chipLabel = '${idx + 1}. $translation';
+                                    }
+
+                                    return Padding(
+                                      padding: const EdgeInsets.only(right: 8),
+                                      child: ChoiceChip(
+                                        label: Text(
+                                          chipLabel,
+                                          style: TextStyle(
+                                            fontWeight: isSelected
+                                                ? FontWeight.bold
+                                                : FontWeight.normal,
+                                            fontSize: 13,
+                                            color: isSelected
+                                                ? colorScheme.onPrimary
+                                                : colorScheme.onSurface,
+                                          ),
+                                        ),
+                                        selected: isSelected,
+                                        selectedColor: colorScheme.primary,
+                                        backgroundColor: colorScheme.surfaceContainerHighest,
+                                        showCheckmark: false,
+                                        onSelected: (selected) {
+                                          if (selected) {
+                                            setState(() {
+                                              _selectedItemIndex = idx;
+                                            });
+                                          }
+                                        },
+                                      ),
+                                    );
+                                  }),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+
                       // 1. Original Text Card
                       _BuildResultCard(
                         title: l10n.originalTextLabel,
                         icon: Icons.language_rounded,
                         iconColor: colorScheme.secondary,
-                        content: result.originalText,
+                        content: currentItem.originalText,
                         contentStyle: theme.textTheme.bodyLarge?.copyWith(
                           fontFamily: 'monospace',
                           fontSize: 16,
@@ -214,7 +426,9 @@ class ResultScreen extends ConsumerWidget {
                                 color: colorScheme.onSurfaceVariant,
                               ),
                               onPressed: () {
-                                Clipboard.setData(ClipboardData(text: result.originalText));
+                                Clipboard.setData(
+                                  ClipboardData(text: currentItem.originalText),
+                                );
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(
                                     content: Text(l10n.copiedToClipboard),
@@ -234,7 +448,7 @@ class ResultScreen extends ConsumerWidget {
                                 if (isTtsSpeaking) {
                                   ttsNotifier.stop();
                                 } else {
-                                  ttsNotifier.speak(result.originalText);
+                                  ttsNotifier.speak(currentItem.originalText);
                                 }
                               },
                             ),
@@ -248,7 +462,7 @@ class ResultScreen extends ConsumerWidget {
                         title: l10n.translationLabel,
                         icon: Icons.translate_rounded,
                         iconColor: colorScheme.primary,
-                        content: result.translation,
+                        content: currentItem.translation,
                         contentStyle: theme.textTheme.bodyLarge?.copyWith(
                           fontSize: 17,
                           fontWeight: FontWeight.bold,
@@ -259,7 +473,9 @@ class ResultScreen extends ConsumerWidget {
                             color: colorScheme.onSurfaceVariant,
                           ),
                           onPressed: () {
-                            Clipboard.setData(ClipboardData(text: result.translation));
+                            Clipboard.setData(
+                              ClipboardData(text: currentItem.translation),
+                            );
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
                                 content: Text(l10n.copiedToClipboard),
@@ -275,15 +491,13 @@ class ResultScreen extends ConsumerWidget {
                         title: l10n.explanationLabel,
                         icon: Icons.auto_awesome_rounded,
                         iconColor: Colors.amber.shade700,
-                        content: result.context,
+                        content: currentItem.context,
                         contentStyle: theme.textTheme.bodyLarge,
                       ),
                       const SizedBox(height: 16),
 
-
-
                       // 3.5. Order Phrase Card
-                      if (result.orderPhraseJapanese.isNotEmpty) ...[
+                      if (currentItem.orderPhraseJapanese.isNotEmpty) ...[
                         _BuildResultCard(
                           title: l10n.orderPhraseTitle,
                           icon: Icons.chat_bubble_outline_rounded,
@@ -297,7 +511,11 @@ class ResultScreen extends ConsumerWidget {
                                   color: colorScheme.onSurfaceVariant,
                                 ),
                                 onPressed: () {
-                                  Clipboard.setData(ClipboardData(text: result.orderPhraseJapanese));
+                                  Clipboard.setData(
+                                    ClipboardData(
+                                      text: currentItem.orderPhraseJapanese,
+                                    ),
+                                  );
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     SnackBar(
                                       content: Text(l10n.copiedToClipboard),
@@ -319,7 +537,9 @@ class ResultScreen extends ConsumerWidget {
                                   if (isTtsSpeaking) {
                                     ttsNotifier.stop();
                                   } else {
-                                    ttsNotifier.speak(result.orderPhraseJapanese);
+                                    ttsNotifier.speak(
+                                      currentItem.orderPhraseJapanese,
+                                    );
                                   }
                                 },
                               ),
@@ -329,7 +549,7 @@ class ResultScreen extends ConsumerWidget {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                result.orderPhraseJapanese,
+                                currentItem.orderPhraseJapanese,
                                 style: theme.textTheme.titleLarge?.copyWith(
                                   fontFamily: 'monospace',
                                   fontWeight: FontWeight.bold,
@@ -339,7 +559,7 @@ class ResultScreen extends ConsumerWidget {
                               ),
                               const SizedBox(height: 6),
                               Text(
-                                '[${l10n.orderPhrasePronunciationLabel}] ${result.orderPhrasePronunciation}',
+                                '[${l10n.orderPhrasePronunciationLabel}] ${currentItem.orderPhrasePronunciation}',
                                 style: theme.textTheme.bodyMedium?.copyWith(
                                   color: colorScheme.onSurface.withValues(
                                     alpha: 0.6,
@@ -350,7 +570,7 @@ class ResultScreen extends ConsumerWidget {
                               ),
                               const SizedBox(height: 10),
                               Text(
-                                '${l10n.orderPhraseMeaningLabel}: ${result.orderPhraseTranslation}',
+                                '${l10n.orderPhraseMeaningLabel}: ${currentItem.orderPhraseTranslation}',
                                 style: theme.textTheme.bodyLarge?.copyWith(
                                   fontSize: 16,
                                 ),
@@ -366,10 +586,113 @@ class ResultScreen extends ConsumerWidget {
                         title: l10n.tipsTitle,
                         icon: Icons.lightbulb_rounded,
                         iconColor: Colors.teal,
-                        content: result.tip,
+                        content: currentItem.tip,
                         contentStyle: theme.textTheme.bodyLarge,
                       ),
-                      const SizedBox(height: 32),
+                      const SizedBox(height: 16),
+
+                      // 5. Allergy Information Card (맨 아래 섹션)
+                      _BuildResultCard(
+                        title: l10n.allergyInfoLabel,
+                        icon: Icons.health_and_safety_rounded,
+                        iconColor: Colors.deepOrange,
+                        child: Container(
+                          padding: const EdgeInsets.all(14),
+                          decoration: BoxDecoration(
+                            color: Colors.deepOrange.withValues(alpha: 0.07),
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(
+                              color: Colors.deepOrange.withValues(alpha: 0.22),
+                            ),
+                          ),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(6),
+                                decoration: BoxDecoration(
+                                  color: Colors.deepOrange.withValues(alpha: 0.12),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(
+                                  Icons.warning_amber_rounded,
+                                  color: Colors.deepOrange,
+                                  size: 20,
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      currentItem.allergyInfo.isNotEmpty
+                                          ? currentItem.allergyInfo
+                                          : '주요 알레르기 유발 성분(대두, 밀, 계란 등)이 포함될 수 있으니 섭취 시 주의하세요.',
+                                      style: theme.textTheme.bodyMedium?.copyWith(
+                                        height: 1.5,
+                                        fontWeight: FontWeight.w500,
+                                        color: colorScheme.onSurface,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+
+                      // 5. Multi-item Previous / Next Navigation Buttons
+                      if (allItems.length > 1) ...[
+                        Row(
+                          children: [
+                            Expanded(
+                              child: OutlinedButton.icon(
+                                onPressed: safeIndex > 0
+                                    ? () {
+                                        setState(() {
+                                          _selectedItemIndex = safeIndex - 1;
+                                        });
+                                      }
+                                    : null,
+                                icon: const Icon(Icons.arrow_back_rounded, size: 18),
+                                label: const Text('이전 메뉴'),
+                                style: OutlinedButton.styleFrom(
+                                  padding: const EdgeInsets.symmetric(vertical: 14),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(14),
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: ElevatedButton.icon(
+                                onPressed: safeIndex < allItems.length - 1
+                                    ? () {
+                                        setState(() {
+                                          _selectedItemIndex = safeIndex + 1;
+                                        });
+                                      }
+                                    : null,
+                                icon: const Icon(Icons.arrow_forward_rounded, size: 18),
+                                label: const Text('다음 메뉴'),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: colorScheme.primary,
+                                  foregroundColor: colorScheme.onPrimary,
+                                  padding: const EdgeInsets.symmetric(vertical: 14),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(14),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 24),
+                      ],
                     ],
                   ),
                 ),
@@ -459,8 +782,12 @@ class _BuildResultCard extends StatelessWidget {
 
 class _BuildLoadingState extends ConsumerWidget {
   final String? imagePath;
+  final Uint8List? croppedImageBytes;
 
-  const _BuildLoadingState({this.imagePath});
+  const _BuildLoadingState({
+    this.imagePath,
+    this.croppedImageBytes,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -471,7 +798,17 @@ class _BuildLoadingState extends ConsumerWidget {
     return Stack(
       fit: StackFit.expand,
       children: [
-        if (imagePath != null && (kIsWeb || File(imagePath!).existsSync()))
+        if (croppedImageBytes != null)
+          Positioned.fill(
+            child: Opacity(
+              opacity: 0.35,
+              child: Image.memory(
+                croppedImageBytes!,
+                fit: BoxFit.cover,
+              ),
+            ),
+          )
+        else if (imagePath != null && (kIsWeb || File(imagePath!).existsSync()))
           Positioned.fill(
             child: Opacity(
               opacity: 0.3,

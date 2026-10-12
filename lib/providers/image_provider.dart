@@ -18,6 +18,9 @@ class ImageNotifier extends Notifier<XFile?> {
     try {
       final XFile? pickedFile = await picker.pickImage(
         source: source,
+        maxWidth: 1200,
+        maxHeight: 1200,
+        imageQuality: 85,
       );
       if (pickedFile != null) {
         final correctedFile = await ImageUtils.fixImageRotationAndResize(pickedFile);

@@ -22,9 +22,22 @@ class DetectedTextBlock {
       parsedBox.add(0);
     }
 
+    final y1 = parsedBox[0];
+    final x1 = parsedBox[1];
+    final y2 = parsedBox[2];
+    final x2 = parsedBox[3];
+
+    final ymin = (y1 < y2 ? y1 : y2).clamp(0, 1000);
+    final ymax = (y1 > y2 ? y1 : y2).clamp(0, 1000);
+    final xmin = (x1 < x2 ? x1 : x2).clamp(0, 1000);
+    final xmax = (x1 > x2 ? x1 : x2).clamp(0, 1000);
+
     return DetectedTextBlock(
-      text: json['text']?.toString() ?? '',
-      box2d: parsedBox.sublist(0, 4),
+      text: json['text']?.toString() ??
+          json['text_content']?.toString() ??
+          json['name']?.toString() ??
+          '',
+      box2d: [ymin, xmin, ymax, xmax],
       translatedText: json['translated_text']?.toString(),
     );
   }
