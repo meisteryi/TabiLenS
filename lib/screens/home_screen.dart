@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import '../providers/image_provider.dart';
@@ -522,6 +523,37 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         _mainDropdownOverlay = null;
       }
     });
+  }
+
+  Future<void> _handleDemoImageSelection(BuildContext context) async {
+    try {
+      final byteData = await rootBundle.load('assets/samples/demo_menu.jpg');
+      final bytes = byteData.buffer.asUint8List();
+      final demoXFile = XFile.fromData(
+        bytes,
+        name: 'demo_menu.jpg',
+        mimeType: 'image/jpeg',
+      );
+
+      final imageNotifier = ref.read(imageProvider.notifier);
+      imageNotifier.setImage(demoXFile);
+
+      if (context.mounted) {
+        ref.read(textSelectionProvider.notifier).clear();
+        Navigator.of(context).push(
+          MaterialPageRoute(builder: (context) => const TextSelectionScreen()),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('시연용 이미지를 불러오는 데 실패했습니다: $e'),
+            backgroundColor: Theme.of(context).colorScheme.error,
+          ),
+        );
+      }
+    }
   }
 
   Future<void> _handleImageSelection(
@@ -1225,6 +1257,71 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                               ),
                             ),
                           ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+
+              // 3. Demo Sample Button at bottom-right
+              IgnorePointer(
+                ignoring: _isInitialSetup || _isUserLanguageSetup || !_animationStarted,
+                child: Align(
+                  alignment: Alignment.bottomRight,
+                  child: AnimatedOpacity(
+                    opacity: _animationStarted && !_isInitialSetup && !_isUserLanguageSetup ? 1.0 : 0.0,
+                    duration: const Duration(milliseconds: 800),
+                    child: Padding(
+                      padding: const EdgeInsets.only(right: 18.0, bottom: 18.0),
+                      child: Tooltip(
+                        message: '시연용 샘플 메뉴판으로 바로 체험하기',
+                        child: Material(
+                          color: Colors.transparent,
+                          child: InkWell(
+                            onTap: () => _handleDemoImageSelection(context),
+                            borderRadius: BorderRadius.circular(20),
+                            child: Ink(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 14,
+                                vertical: 9,
+                              ),
+                              decoration: BoxDecoration(
+                                color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.85),
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(
+                                  color: activeColor.withValues(alpha: 0.5),
+                                  width: 1.2,
+                                ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withValues(alpha: 0.15),
+                                    blurRadius: 10,
+                                    offset: const Offset(0, 4),
+                                  ),
+                                ],
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    Icons.restaurant_menu_rounded,
+                                    size: 17,
+                                    color: activeColor,
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    '시연용 메뉴판',
+                                    style: theme.textTheme.labelMedium?.copyWith(
+                                      fontWeight: FontWeight.bold,
+                                      color: colorScheme.onSurface,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
                         ),
                       ),
                     ),

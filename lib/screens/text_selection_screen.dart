@@ -53,13 +53,19 @@ class _TextSelectionScreenState extends ConsumerState<TextSelectionScreen> {
     _loadImageSize();
   }
 
-  void _loadImageSize() {
+  Future<void> _loadImageSize() async {
     final imageFile = ref.read(imageProvider);
     if (imageFile == null) return;
 
-    final ImageProvider provider = kIsWeb
-        ? NetworkImage(imageFile.path)
-        : FileImage(File(imageFile.path));
+    final ImageProvider provider;
+    if (imageFile.path.isEmpty) {
+      final bytes = await imageFile.readAsBytes();
+      provider = MemoryImage(bytes);
+    } else if (kIsWeb) {
+      provider = NetworkImage(imageFile.path);
+    } else {
+      provider = FileImage(File(imageFile.path));
+    }
 
     final ImageStream stream = provider.resolve(const ImageConfiguration());
 
@@ -352,15 +358,28 @@ class _TextSelectionScreenState extends ConsumerState<TextSelectionScreen> {
                             children: [
                               // 1. The Menu Image
                               Positioned.fill(
-                                child: kIsWeb
-                                    ? Image.network(
-                                        imageFile.path,
-                                        fit: BoxFit.fill,
+                                child: imageFile.path.isEmpty
+                                    ? FutureBuilder<Uint8List>(
+                                        future: imageFile.readAsBytes(),
+                                        builder: (context, snapshot) {
+                                          if (snapshot.hasData) {
+                                            return Image.memory(
+                                              snapshot.data!,
+                                              fit: BoxFit.fill,
+                                            );
+                                          }
+                                          return const SizedBox.shrink();
+                                        },
                                       )
-                                    : Image.file(
-                                        File(imageFile.path),
-                                        fit: BoxFit.fill,
-                                      ),
+                                    : (kIsWeb
+                                        ? Image.network(
+                                            imageFile.path,
+                                            fit: BoxFit.fill,
+                                          )
+                                        : Image.file(
+                                            File(imageFile.path),
+                                            fit: BoxFit.fill,
+                                          )),
                               ),
 
                               // 2. Auto-detected block boxes (if any)
@@ -1100,9 +1119,19 @@ class _BuildDetectionLoadingState extends ConsumerWidget {
           Positioned.fill(
             child: Opacity(
               opacity: 0.2,
-              child: kIsWeb
-                  ? Image.network(imagePath!, fit: BoxFit.cover)
-                  : Image.file(File(imagePath!), fit: BoxFit.cover),
+              child: imagePath!.isEmpty
+                  ? FutureBuilder<Uint8List>(
+                      future: ref.read(imageProvider)?.readAsBytes(),
+                      builder: (context, snapshot) {
+                        if (snapshot.hasData) {
+                          return Image.memory(snapshot.data!, fit: BoxFit.cover);
+                        }
+                        return const SizedBox.shrink();
+                      },
+                    )
+                  : (kIsWeb
+                      ? Image.network(imagePath!, fit: BoxFit.cover)
+                      : Image.file(File(imagePath!), fit: BoxFit.cover)),
             ),
           ),
         Container(color: colorScheme.surface.withValues(alpha: 0.85)),

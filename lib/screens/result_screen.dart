@@ -293,7 +293,8 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
                 else if (selectedImage != null)
                   Builder(
                     builder: (context) {
-                      final imageFileExists = kIsWeb || File(selectedImage.path).existsSync();
+                      final isMemory = selectedImage.path.isEmpty;
+                      final imageFileExists = isMemory || kIsWeb || File(selectedImage.path).existsSync();
                       if (!imageFileExists) {
                         return Container(
                           height: 180,
@@ -350,31 +351,46 @@ class _ResultScreenState extends ConsumerState<ResultScreen> {
                         ),
                         child: ClipRRect(
                           borderRadius: BorderRadius.circular(20),
-                          child: kIsWeb
-                              ? Image.network(
-                                  selectedImage.path,
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (context, error, stackTrace) => Container(
-                                    color: colorScheme.onSurface.withValues(alpha: 0.05),
-                                    child: Icon(
-                                      Icons.broken_image_rounded,
-                                      size: 40,
-                                      color: colorScheme.onSurface.withValues(alpha: 0.3),
-                                    ),
-                                  ),
+                          child: isMemory
+                              ? FutureBuilder<Uint8List>(
+                                  future: selectedImage.readAsBytes(),
+                                  builder: (context, snapshot) {
+                                    if (snapshot.hasData) {
+                                      return Image.memory(
+                                        snapshot.data!,
+                                        fit: BoxFit.cover,
+                                      );
+                                    }
+                                    return Container(
+                                      color: colorScheme.onSurface.withValues(alpha: 0.05),
+                                    );
+                                  },
                                 )
-                              : Image.file(
-                                  File(selectedImage.path),
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (context, error, stackTrace) => Container(
-                                    color: colorScheme.onSurface.withValues(alpha: 0.05),
-                                    child: Icon(
-                                      Icons.broken_image_rounded,
-                                      size: 40,
-                                      color: colorScheme.onSurface.withValues(alpha: 0.3),
-                                    ),
-                                  ),
-                                ),
+                              : (kIsWeb
+                                  ? Image.network(
+                                      selectedImage.path,
+                                      fit: BoxFit.cover,
+                                      errorBuilder: (context, error, stackTrace) => Container(
+                                        color: colorScheme.onSurface.withValues(alpha: 0.05),
+                                        child: Icon(
+                                          Icons.broken_image_rounded,
+                                          size: 40,
+                                          color: colorScheme.onSurface.withValues(alpha: 0.3),
+                                        ),
+                                      ),
+                                    )
+                                  : Image.file(
+                                      File(selectedImage.path),
+                                      fit: BoxFit.cover,
+                                      errorBuilder: (context, error, stackTrace) => Container(
+                                        color: colorScheme.onSurface.withValues(alpha: 0.05),
+                                        child: Icon(
+                                          Icons.broken_image_rounded,
+                                          size: 40,
+                                          color: colorScheme.onSurface.withValues(alpha: 0.3),
+                                        ),
+                                      ),
+                                    )),
                         ),
                       );
                     },
@@ -962,23 +978,33 @@ class _BuildLoadingState extends ConsumerWidget {
               ),
             ),
           )
-        else if (imagePath != null && (kIsWeb || File(imagePath!).existsSync()))
+        else if (imagePath != null && (imagePath!.isEmpty || kIsWeb || File(imagePath!).existsSync()))
           Positioned.fill(
             child: Opacity(
               opacity: 0.3,
-              child: kIsWeb
-                  ? Image.network(
-                      imagePath!,
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) =>
-                          const SizedBox.shrink(),
+              child: imagePath!.isEmpty
+                  ? FutureBuilder<Uint8List>(
+                      future: ref.read(imageProvider)?.readAsBytes(),
+                      builder: (context, snapshot) {
+                        if (snapshot.hasData) {
+                          return Image.memory(snapshot.data!, fit: BoxFit.cover);
+                        }
+                        return const SizedBox.shrink();
+                      },
                     )
-                  : Image.file(
-                      File(imagePath!),
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) =>
-                          const SizedBox.shrink(),
-                    ),
+                  : (kIsWeb
+                      ? Image.network(
+                          imagePath!,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) =>
+                              const SizedBox.shrink(),
+                        )
+                      : Image.file(
+                          File(imagePath!),
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) =>
+                              const SizedBox.shrink(),
+                        )),
             ),
           ),
         Container(color: colorScheme.surface.withValues(alpha: 0.85)),
