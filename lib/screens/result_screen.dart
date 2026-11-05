@@ -1138,25 +1138,25 @@ class _BuildErrorState extends ConsumerWidget {
 // Representative menu item photo card using Unsplash keywords
 
 
-class _OrderPhraseInfo {
+class OrderPhraseInfo {
   final String phrase;
   final String pronunciation;
   final String translation;
 
-  const _OrderPhraseInfo({
+  const OrderPhraseInfo({
     required this.phrase,
     required this.pronunciation,
     required this.translation,
   });
 }
 
-_OrderPhraseInfo _getDynamicOrderPhraseInfo(
+OrderPhraseInfo getDynamicOrderPhraseInfo(
   TranslationResult item,
   int quantity,
   LanguageMode lang,
 ) {
   if (quantity == 1) {
-    return _OrderPhraseInfo(
+    return OrderPhraseInfo(
       phrase: item.orderPhraseJapanese,
       pronunciation: item.orderPhrasePronunciation,
       translation: item.orderPhraseTranslation,
@@ -1200,8 +1200,10 @@ _OrderPhraseInfo _getDynamicOrderPhraseInfo(
       p = p.replaceAll('1個', '$quantity個');
     } else if (p.contains('ひとつ')) {
       p = p.replaceAll('ひとつ', qWord);
-    } else if (p.contains('1')) {
-      p = p.replaceAll('1', quantity.toString());
+    } else if (p.contains('これ')) {
+      p = p.replaceAll('これ', 'これを$qWord');
+    } else if (RegExp(r'\b1\b').hasMatch(p)) {
+      p = p.replaceAll(RegExp(r'\b1\b'), quantity.toString());
     } else {
       p = '${item.originalText}を$qWordお願いします。';
     }
@@ -1213,6 +1215,8 @@ _OrderPhraseInfo _getDynamicOrderPhraseInfo(
       pron = pron.replaceAll('히토쯔', qPron);
     } else if (pron.contains('하나')) {
       pron = pron.replaceAll('하나', '$quantity개');
+    } else if (pron.contains('1개')) {
+      pron = pron.replaceAll('1개', '$quantity개');
     } else if (pron.isNotEmpty) {
       pron = '$pron ($qPron)';
     }
@@ -1229,7 +1233,7 @@ _OrderPhraseInfo _getDynamicOrderPhraseInfo(
       trans = '$name $quantity개 부탁합니다.';
     }
 
-    return _OrderPhraseInfo(phrase: p, pronunciation: pron, translation: trans);
+    return OrderPhraseInfo(phrase: p, pronunciation: pron, translation: trans);
   }
 
   // 2. Chinese
@@ -1267,8 +1271,10 @@ _OrderPhraseInfo _getDynamicOrderPhraseInfo(
       p = p.replaceAll('1个', qWord);
     } else if (p.contains('一份')) {
       p = p.replaceAll('一份', quantity == 2 ? '两份' : '$quantity份');
-    } else if (p.contains('1')) {
-      p = p.replaceAll('1', quantity.toString());
+    } else if (p.contains('这个')) {
+      p = p.replaceAll('这个', '$qWord这个');
+    } else if (RegExp(r'\b1\b').hasMatch(p)) {
+      p = p.replaceAll(RegExp(r'\b1\b'), quantity.toString());
     } else {
       p = '请给我$qWord${item.originalText}。';
     }
@@ -1278,6 +1284,8 @@ _OrderPhraseInfo _getDynamicOrderPhraseInfo(
       pron = pron.replaceAll('이거', qPron);
     } else if (pron.contains('이펀')) {
       pron = pron.replaceAll('이펀', quantity == 2 ? '량펀' : '$quantity펀');
+    } else if (pron.contains('쩌거')) {
+      pron = pron.replaceAll('쩌거', '$qPron 쩌거');
     } else if (pron.isNotEmpty) {
       pron = '$pron ($qPron)';
     }
@@ -1285,6 +1293,8 @@ _OrderPhraseInfo _getDynamicOrderPhraseInfo(
     String trans = item.orderPhraseTranslation;
     if (trans.contains('하나')) {
       trans = trans.replaceAll('하나', '$quantity개');
+    } else if (trans.contains('한 개')) {
+      trans = trans.replaceAll('한 개', '$quantity개');
     } else if (trans.contains('1개')) {
       trans = trans.replaceAll('1개', '$quantity개');
     } else {
@@ -1292,7 +1302,7 @@ _OrderPhraseInfo _getDynamicOrderPhraseInfo(
       trans = '$name $quantity개 부탁합니다.';
     }
 
-    return _OrderPhraseInfo(phrase: p, pronunciation: pron, translation: trans);
+    return OrderPhraseInfo(phrase: p, pronunciation: pron, translation: trans);
   }
 
   // 3. English
@@ -1308,20 +1318,53 @@ _OrderPhraseInfo _getDynamicOrderPhraseInfo(
       9: 'nine',
       10: 'ten',
     };
+    const enPron = {
+      2: '투',
+      3: '쓰리',
+      4: '포',
+      5: '파이브',
+      6: '식스',
+      7: '세븐',
+      8: '에이트',
+      9: '나인',
+      10: '텐',
+    };
     final qWord = enQuantities[quantity] ?? '$quantity';
+    final qPron = enPron[quantity] ?? '$quantity';
 
     String p = item.orderPhraseJapanese;
-    if (p.toLowerCase().contains('one')) {
+    if (RegExp(r'\bone of this\b', caseSensitive: false).hasMatch(p)) {
+      p = p.replaceAll(RegExp(r'\bone of this\b', caseSensitive: false), '$qWord of this');
+    } else if (RegExp(r'\bone\b', caseSensitive: false).hasMatch(p)) {
       p = p.replaceAll(RegExp(r'\bone\b', caseSensitive: false), qWord);
+    } else if (RegExp(r'\b(a|an)\b', caseSensitive: false).hasMatch(p)) {
+      p = p.replaceAll(RegExp(r'\b(a|an)\b', caseSensitive: false), qWord);
     } else if (p.contains('1')) {
       p = p.replaceAll('1', quantity.toString());
+    } else if (RegExp(r'\bthis\b', caseSensitive: false).hasMatch(p)) {
+      p = p.replaceAll(RegExp(r'\bthis\b', caseSensitive: false), '$qWord of these');
     } else {
-      p = 'Can I have $qWord ${item.originalText}, please?';
+      p = 'Could I have $qWord ${item.originalText}, please?';
+    }
+
+    String pron = item.orderPhrasePronunciation;
+    if (pron.contains('원 오브 디스')) {
+      pron = pron.replaceAll('원 오브 디스', '$qPron 오브 디스');
+    } else if (pron.contains('원')) {
+      pron = pron.replaceAll('원', qPron);
+    } else if (pron.contains('하나')) {
+      pron = pron.replaceAll('하나', '$quantity개');
+    } else if (pron.contains('디스')) {
+      pron = pron.replaceAll('디스', '$qPron 오브 디스');
+    } else if (pron.isNotEmpty) {
+      pron = '$pron ($qPron)';
     }
 
     String trans = item.orderPhraseTranslation;
     if (trans.contains('하나')) {
       trans = trans.replaceAll('하나', '$quantity개');
+    } else if (trans.contains('한 개')) {
+      trans = trans.replaceAll('한 개', '$quantity개');
     } else if (trans.contains('1개')) {
       trans = trans.replaceAll('1개', '$quantity개');
     } else {
@@ -1329,9 +1372,9 @@ _OrderPhraseInfo _getDynamicOrderPhraseInfo(
       trans = '$name $quantity개 부탁합니다.';
     }
 
-    return _OrderPhraseInfo(
+    return OrderPhraseInfo(
       phrase: p,
-      pronunciation: item.orderPhrasePronunciation,
+      pronunciation: pron,
       translation: trans,
     );
   }
@@ -1349,28 +1392,57 @@ _OrderPhraseInfo _getDynamicOrderPhraseInfo(
       9: 'neuf',
       10: 'dix',
     };
+    const frPron = {
+      2: '드',
+      3: '트루아',
+      4: '카트르',
+      5: '생크',
+      6: '시스',
+      7: '셋',
+      8: '위트',
+      9: '뇌프',
+      10: '디스',
+    };
     final qWord = frQuantities[quantity] ?? '$quantity';
+    final qPron = frPron[quantity] ?? '$quantity';
 
     String p = item.orderPhraseJapanese;
-    if (p.toLowerCase().contains('un ')) {
-      p = p.replaceAll(RegExp(r'\bun\b', caseSensitive: false), qWord);
+    if (RegExp(r'\b(un|une)\b', caseSensitive: false).hasMatch(p)) {
+      p = p.replaceAll(RegExp(r'\b(un|une)\b', caseSensitive: false), qWord);
     } else if (p.contains('1')) {
       p = p.replaceAll('1', quantity.toString());
+    } else if (p.contains('celui-ci')) {
+      p = p.replaceAll('celui-ci', '$qWord comme ça');
     } else {
       p = '$qWord ${item.originalText}, s\'il vous plaît.';
+    }
+
+    String pron = item.orderPhrasePronunciation;
+    if (pron.contains('언')) {
+      pron = pron.replaceAll('언', qPron);
+    } else if (pron.contains('윈')) {
+      pron = pron.replaceAll('윈', qPron);
+    } else if (pron.contains('슬뤼-씨')) {
+      pron = pron.replaceAll('슬뤼-씨', '$qPron 꼼 싸');
+    } else if (pron.isNotEmpty) {
+      pron = '$pron ($qPron)';
     }
 
     String trans = item.orderPhraseTranslation;
     if (trans.contains('하나')) {
       trans = trans.replaceAll('하나', '$quantity개');
+    } else if (trans.contains('한 개')) {
+      trans = trans.replaceAll('한 개', '$quantity개');
+    } else if (trans.contains('1개')) {
+      trans = trans.replaceAll('1개', '$quantity개');
     } else {
       final name = item.translation.isNotEmpty ? item.translation : item.originalText;
       trans = '$name $quantity개 부탁합니다.';
     }
 
-    return _OrderPhraseInfo(
+    return OrderPhraseInfo(
       phrase: p,
-      pronunciation: item.orderPhrasePronunciation,
+      pronunciation: pron,
       translation: trans,
     );
   }
@@ -1388,33 +1460,66 @@ _OrderPhraseInfo _getDynamicOrderPhraseInfo(
       9: 'nueve',
       10: 'diez',
     };
+    const esPron = {
+      2: '도스',
+      3: '트레스',
+      4: '콰트로',
+      5: '싱코',
+      6: '세이스',
+      7: '시에테',
+      8: '오초',
+      9: '누에베',
+      10: '디에스',
+    };
     final qWord = esQuantities[quantity] ?? '$quantity';
+    final qPron = esPron[quantity] ?? '$quantity';
 
     String p = item.orderPhraseJapanese;
-    if (p.toLowerCase().contains('un ')) {
-      p = p.replaceAll(RegExp(r'\bun\b', caseSensitive: false), qWord);
+    if (RegExp(r'\buno de este\b', caseSensitive: false).hasMatch(p)) {
+      p = p.replaceAll(RegExp(r'\buno de este\b', caseSensitive: false), '$qWord de estos');
+    } else if (RegExp(r'\b(uno|una|un)\b', caseSensitive: false).hasMatch(p)) {
+      p = p.replaceAll(RegExp(r'\b(uno|una|un)\b', caseSensitive: false), qWord);
     } else if (p.contains('1')) {
       p = p.replaceAll('1', quantity.toString());
+    } else if (p.contains('este')) {
+      p = p.replaceAll('este', '$qWord de estos');
     } else {
       p = '$qWord ${item.originalText}, por favor.';
+    }
+
+    String pron = item.orderPhrasePronunciation;
+    if (pron.contains('우노 데 에스테')) {
+      pron = pron.replaceAll('우노 데 에스테', '$qPron 데 에스토스');
+    } else if (pron.contains('우노')) {
+      pron = pron.replaceAll('우노', qPron);
+    } else if (pron.contains('운')) {
+      pron = pron.replaceAll('운', qPron);
+    } else if (pron.contains('에스테')) {
+      pron = pron.replaceAll('에스테', '$qPron 데 에스토스');
+    } else if (pron.isNotEmpty) {
+      pron = '$pron ($qPron)';
     }
 
     String trans = item.orderPhraseTranslation;
     if (trans.contains('하나')) {
       trans = trans.replaceAll('하나', '$quantity개');
+    } else if (trans.contains('한 개')) {
+      trans = trans.replaceAll('한 개', '$quantity개');
+    } else if (trans.contains('1개')) {
+      trans = trans.replaceAll('1개', '$quantity개');
     } else {
       final name = item.translation.isNotEmpty ? item.translation : item.originalText;
       trans = '$name $quantity개 부탁합니다.';
     }
 
-    return _OrderPhraseInfo(
+    return OrderPhraseInfo(
       phrase: p,
-      pronunciation: item.orderPhrasePronunciation,
+      pronunciation: pron,
       translation: trans,
     );
   }
 
-  return _OrderPhraseInfo(
+  return OrderPhraseInfo(
     phrase: '${item.originalText} x $quantity',
     pronunciation: item.orderPhrasePronunciation,
     translation: '${item.translation} $quantity개',
@@ -1442,7 +1547,7 @@ void _showOrderCardModal(
               final colorScheme = theme.colorScheme;
               final isTtsSpeaking = ref.watch(ttsProvider);
               final currentLang = ref.watch(languageProvider);
-              final orderInfo = _getDynamicOrderPhraseInfo(
+              final orderInfo = getDynamicOrderPhraseInfo(
                 item,
                 quantity,
                 currentLang,
